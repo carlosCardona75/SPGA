@@ -1,7 +1,7 @@
-function App(){
-  return(
-    <h1>SGPA - Sistema de Gestión de Programación Académica</h1>
-  );
+import Dashboard from "./pages/Dashboard/Dashboard";
+
+function App() {
+  return <Dashboard />;
 }
 
 export default App;
