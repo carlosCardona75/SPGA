@@ -7,6 +7,7 @@ const db = require("./config/database");
 const docenteRoutes = require("./routes/docenteRoutes");
 const materiaRoutes = require("./routes/materiaRoutes");
 const grupoRoutes = require("./routes/grupoRoutes");
+const aulaRoutes = require("./routes/aulaRoutes");
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.get("/api/test", (req, res) => {
 app.use("/api/docentes", docenteRoutes);
 app.use("/api/materias", materiaRoutes);
 app.use("/api/grupos", grupoRoutes);
+app.use("/api/aulas", aulaRoutes);
 
 // =============================
 // Verificar conexión con MySQL
