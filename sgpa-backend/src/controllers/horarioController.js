@@ -27,9 +27,99 @@ const normalizarHora = (hora) => {
 };
 
 // Obtener todos los horarios
+// Obtener horarios con filtros opcionales
 const obtenerHorarios = async (req, res) => {
     try {
-        const [rows] = await db.query(`
+        const {
+            id_docente,
+            id_grupo,
+            id_periodo,
+            id_aula,
+            dia_semana,
+            estado,
+            aula_pendiente
+        } = req.query;
+
+        const condiciones = [];
+        const valores = [];
+
+        if (id_docente) {
+            condiciones.push("a.id_docente = ?");
+            valores.push(id_docente);
+        }
+
+        if (id_grupo) {
+            condiciones.push("a.id_grupo = ?");
+            valores.push(id_grupo);
+        }
+
+        if (id_periodo) {
+            condiciones.push("a.id_periodo = ?");
+            valores.push(id_periodo);
+        }
+
+        if (id_aula) {
+            condiciones.push("dh.id_aula = ?");
+            valores.push(id_aula);
+        }
+
+        if (dia_semana) {
+            const diaNormalizado = String(dia_semana)
+                .trim()
+                .toUpperCase();
+
+            if (!DIAS_VALIDOS.includes(diaNormalizado)) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: "El día de la semana no es válido"
+                });
+            }
+
+            condiciones.push("dh.dia_semana = ?");
+            valores.push(diaNormalizado);
+        }
+
+        if (estado !== undefined) {
+            if (![0, 1].includes(Number(estado))) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: "El estado debe ser 0 o 1"
+                });
+            }
+
+            condiciones.push("dh.estado = ?");
+            valores.push(Number(estado));
+        }
+
+        if (aula_pendiente !== undefined) {
+            if (!["true", "false"].includes(aula_pendiente)) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: "aula_pendiente debe ser true o false"
+                });
+            }
+
+            condiciones.push(
+                aula_pendiente === "true"
+                    ? "dh.id_aula IS NULL"
+                    : "dh.id_aula IS NOT NULL"
+            );
+        }
+
+        if (id_aula && aula_pendiente !== undefined) {
+            return res.status(400).json({
+                ok: false,
+                mensaje: "No se puede combinar id_aula con aula_pendiente"
+            });
+        }
+
+        const where =
+            condiciones.length > 0
+                ? `WHERE ${condiciones.join(" AND ")}`
+                : "";
+
+        const [rows] = await db.query(
+            `
             SELECT
                 dh.id_detalle,
                 dh.id_asignacion,
@@ -63,12 +153,16 @@ const obtenerHorarios = async (req, res) => {
                 ON a.id_periodo = p.id_periodo
             LEFT JOIN aula au
                 ON dh.id_aula = au.id_aula
+            ${where}
             ORDER BY dh.id_detalle
-        `);
+            `,
+            valores
+        );
 
         res.status(200).json({
             ok: true,
             total: rows.length,
+            filtros: req.query,
             horarios: rows
         });
     } catch (error) {

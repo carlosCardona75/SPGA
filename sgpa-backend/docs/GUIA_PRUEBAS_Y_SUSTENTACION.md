@@ -163,6 +163,45 @@ Resultado final comprobado:
 
 > Primero consulté y registré el valor original. Después utilicé un docente temporal y reduje su límite únicamente para forzar el escenario de error. El API calculó la carga acumulada, sumó la duración propuesta y respondió `409 Conflict` antes del `INSERT`. Finalmente restauré el valor original y lo confirmé mediante una consulta. De esta manera se prueba la regla sin dejar datos de producción alterados.
 
+## Filtros de consulta de horarios
+
+El endpoint `GET /api/horarios` admite filtros opcionales mediante parámetros de consulta. Los filtros pueden usarse individualmente o combinarse, y la consulta SQL se construye con parámetros preparados para conservar la seguridad de los datos.
+
+Filtros implementados:
+
+- `id_docente`: horarios de un docente.
+- `id_grupo`: horarios de un grupo.
+- `id_periodo`: horarios de un período académico.
+- `id_aula`: horarios asignados a un aula concreta.
+- `dia_semana`: horarios de un día válido.
+- `estado`: horarios activos (`1`) o inactivos (`0`).
+- `aula_pendiente`: horarios sin aula (`true`) o con aula (`false`).
+
+### Casos comprobados en Postman
+
+| Caso | Solicitud | Resultado comprobado |
+|---|---|---|
+| Consulta general | `GET /api/horarios` | `200 OK`, 213 registros |
+| Horarios sin aula | `GET /api/horarios?aula_pendiente=true` | `200 OK`, 181 registros |
+| Horarios con aula | `GET /api/horarios?aula_pendiente=false` | `200 OK`, 32 registros |
+| Horarios del docente 199 | `GET /api/horarios?id_docente=199` | `200 OK`, 1 registro |
+| Período 1 y martes | `GET /api/horarios?id_periodo=1&dia_semana=MARTES` | `200 OK`, 47 registros |
+| Horarios activos | `GET /api/horarios?estado=1` | `200 OK`, 213 registros |
+| Día no permitido | `GET /api/horarios?dia_semana=DOMINGO` | `400 Bad Request` |
+| Valor booleano inválido | `GET /api/horarios?aula_pendiente=si` | `400 Bad Request` |
+| Estado inválido | `GET /api/horarios?estado=2` | `400 Bad Request` |
+| Filtros contradictorios | `GET /api/horarios?id_aula=1&aula_pendiente=true` | `400 Bad Request` |
+
+La consistencia de los datos también fue comprobada con la siguiente suma:
+
+```text
+181 horarios sin aula + 32 horarios con aula = 213 horarios totales
+```
+
+### Guion breve para explicar los filtros
+
+> La consulta general conserva su comportamiento original y devuelve los 213 horarios. Los parámetros son opcionales y cada uno agrega una condición a la consulta preparada. Cuando se combinan, el sistema exige que se cumplan todas las condiciones. Además, el controlador rechaza valores inválidos y filtros contradictorios antes de consultar la base de datos. Un ejemplo importante es aula_pendiente, que permite identificar 181 horarios todavía sin aula y distinguirlos de los 32 que ya cuentan con una asignación.
+
 ## Lista de control al finalizar una sesión
 
 - [ ] Todos los valores temporales fueron restaurados.
