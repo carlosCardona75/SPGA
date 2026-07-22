@@ -9,6 +9,7 @@ const materiaRoutes = require("./routes/materiaRoutes");
 const grupoRoutes = require("./routes/grupoRoutes");
 const aulaRoutes = require("./routes/aulaRoutes");
 const periodoRoutes = require("./routes/periodoRoutes");
+const asignacionRoutes = require("./routes/asignacionRoutes");
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.use("/api/materias", materiaRoutes);
 app.use("/api/grupos", grupoRoutes);
 app.use("/api/aulas", aulaRoutes);
 app.use("/api/periodos", periodoRoutes);
+app.use("/api/asignaciones", asignacionRoutes);
 
 // =============================
 // Verificar conexión con MySQL
