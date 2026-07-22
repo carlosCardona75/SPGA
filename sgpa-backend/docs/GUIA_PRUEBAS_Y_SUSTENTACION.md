@@ -202,6 +202,36 @@ La consistencia de los datos también fue comprobada con la siguiente suma:
 
 > La consulta general conserva su comportamiento original y devuelve los 213 horarios. Los parámetros son opcionales y cada uno agrega una condición a la consulta preparada. Cuando se combinan, el sistema exige que se cumplan todas las condiciones. Además, el controlador rechaza valores inválidos y filtros contradictorios antes de consultar la base de datos. Un ejemplo importante es aula_pendiente, que permite identificar 181 horarios todavía sin aula y distinguirlos de los 32 que ya cuentan con una asignación.
 
+## Exportación de horarios a Excel
+
+El endpoint `GET /api/horarios/exportar` genera un archivo `.xlsx` en memoria y lo envía como descarga. La hoja se denomina `Horarios` e incluye docente, materia, grupo, período, aula, día, horas y estado. Cuando el horario todavía no tiene aula, el reporte muestra `PENDIENTE`.
+
+La exportación admite los filtros `id_docente`, `id_grupo` e `id_periodo`. Estos filtros usan parámetros preparados en la consulta SQL y pueden combinarse. Los identificadores deben ser números enteros positivos.
+
+### Casos comprobados en Postman y Excel
+
+| Caso | Solicitud | Resultado comprobado |
+|---|---|---|
+| Exportación general | `GET /api/horarios/exportar` | `200 OK`, archivo con 213 registros |
+| Exportación por docente | `GET /api/horarios/exportar?id_docente=199` | `200 OK`, archivo con 1 registro |
+| Exportación por grupo | `GET /api/horarios/exportar?id_grupo=116` | `200 OK`, archivo con 16 registros del grupo 801 |
+| Exportación por período | `GET /api/horarios/exportar?id_periodo=1` | `200 OK`, archivo con 213 registros del período 202660 |
+| Período sin horarios | `GET /api/horarios/exportar?id_periodo=999999` | `404 Not Found`, no genera un archivo vacío |
+| Identificador inválido | `GET /api/horarios/exportar?id_docente=abc` | `400 Bad Request` |
+
+Nombres de archivo comprobados:
+
+```text
+Sin filtros       -> horarios_sgpa.xlsx
+id_docente=199    -> horario_docente_199.xlsx
+id_grupo=116      -> horario_grupo_116.xlsx
+id_periodo=1      -> horarios_periodo_1.xlsx
+```
+
+### Guion breve para explicar la exportación
+
+> El backend consulta los horarios usando filtros opcionales y parámetros preparados. Después convierte los registros a una hoja de Excel, ajusta el ancho de sus columnas y genera el archivo en memoria, sin dejar archivos temporales en el servidor. El nombre de la descarga identifica el filtro utilizado. Si la consulta no tiene resultados, responde 404 en lugar de generar una hoja vacía; y si un identificador tiene un formato inválido, responde 400 antes de consultar MySQL.
+
 ## Lista de control al finalizar una sesión
 
 - [ ] Todos los valores temporales fueron restaurados.

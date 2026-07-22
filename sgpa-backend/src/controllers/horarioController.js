@@ -1,4 +1,6 @@
 const db = require("../config/database");
+const xlsx = require("xlsx");
+
 const DIAS_VALIDOS = [
     "LUNES",
     "MARTES",
@@ -871,10 +873,175 @@ const eliminarHorario = async (req, res) => {
         });
     }
 };
+
+// Exportar horarios a un archivo Excel
+const exportarHorarios = async (req, res) => {
+    try {
+        const {
+            id_docente,
+            id_grupo,
+            id_periodo
+        } = req.query;
+
+        const filtrosId = {
+            id_docente,
+            id_grupo,
+            id_periodo
+        };
+
+        for (const [campo, valor] of Object.entries(filtrosId)) {
+            if (
+                valor !== undefined &&
+                (
+                    !/^\d+$/.test(String(valor)) ||
+                    Number(valor) <= 0
+                )
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: `${campo} debe ser un número entero positivo`
+                });
+            }
+        }
+
+        const condiciones = [];
+        const valores = [];
+
+        if (id_docente) {
+            condiciones.push("a.id_docente = ?");
+            valores.push(id_docente);
+        }
+
+        if (id_grupo) {
+            condiciones.push("a.id_grupo = ?");
+            valores.push(id_grupo);
+        }
+
+        if (id_periodo) {
+            condiciones.push("a.id_periodo = ?");
+            valores.push(id_periodo);
+        }
+
+        const where =
+            condiciones.length > 0
+                ? `WHERE ${condiciones.join(" AND ")}`
+                : "";
+        const [horarios] = await db.query(`
+            SELECT
+                d.cedula AS documento_docente,
+                CONCAT(d.nombres, ' ', d.apellidos) AS docente,
+                m.codigo AS codigo_materia,
+                m.nombre_materia AS materia,
+                g.cod_grupo AS grupo,
+                g.descripcion AS descripcion_grupo,
+                p.nombre_periodo AS periodo,
+                COALESCE(au.codigo, 'PENDIENTE') AS aula,
+                dh.dia_semana,
+                dh.hora_inicio,
+                dh.hora_fin,
+                CASE
+                    WHEN dh.estado = 1 THEN 'ACTIVO'
+                    ELSE 'INACTIVO'
+                END AS estado
+            FROM detalle_horario dh
+            INNER JOIN asignacion a
+                ON dh.id_asignacion = a.id_asignacion
+            INNER JOIN docente d
+                ON a.id_docente = d.id_docente
+            INNER JOIN grupo g
+                ON a.id_grupo = g.id_grupo
+            INNER JOIN materia m
+                ON g.id_materia = m.id_materia
+            INNER JOIN periodo_academico p
+                ON a.id_periodo = p.id_periodo
+            LEFT JOIN aula au
+                ON dh.id_aula = au.id_aula
+            ${where}
+            ORDER BY
+                d.apellidos,
+                d.nombres,
+                dh.dia_semana,
+                dh.hora_inicio
+        `, valores);
+
+        if (horarios.length === 0) {
+            return res.status(404).json({
+                ok: false,
+                mensaje: "No hay horarios para exportar"
+            });
+        }
+
+        // Convertir los registros de MySQL en una hoja de Excel
+        const hoja = xlsx.utils.json_to_sheet(horarios);
+
+        // Definir anchos para mejorar la presentación de las columnas
+        hoja["!cols"] = [
+            { wch: 20 },
+            { wch: 35 },
+            { wch: 18 },
+            { wch: 35 },
+            { wch: 12 },
+            { wch: 40 },
+            { wch: 15 },
+            { wch: 18 },
+            { wch: 14 },
+            { wch: 12 },
+            { wch: 12 },
+            { wch: 12 }
+        ];
+
+        // Crear el libro y agregarle la hoja
+        const libro = xlsx.utils.book_new();
+
+        xlsx.utils.book_append_sheet(
+            libro,
+            hoja,
+            "Horarios"
+        );
+
+        // Generar el archivo en memoria
+        const archivoExcel = xlsx.write(libro, {
+            type: "buffer",
+            bookType: "xlsx"
+        });
+
+        // Indicarle al navegador que la respuesta es una descarga
+        res.setHeader(
+            "Content-Type",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        );
+
+        let nombreArchivo = "horarios_sgpa.xlsx";
+
+        if (id_docente) {
+            nombreArchivo = `horario_docente_${id_docente}.xlsx`;
+        } else if (id_grupo) {
+            nombreArchivo = `horario_grupo_${id_grupo}.xlsx`;
+        } else if (id_periodo) {
+            nombreArchivo = `horarios_periodo_${id_periodo}.xlsx`;
+        }
+
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${nombreArchivo}"`
+        );
+
+        return res.status(200).send(archivoExcel);
+    } catch (error) {
+        console.error("Error al exportar horarios:", error);
+
+        return res.status(500).json({
+            ok: false,
+            mensaje: "Error al exportar los horarios"
+        });
+    }
+};
+
 module.exports = {
     obtenerHorarios,
     obtenerHorarioPorId,
     crearHorario,
     actualizarHorario,
-    eliminarHorario
+    eliminarHorario,
+    exportarHorarios
 };
