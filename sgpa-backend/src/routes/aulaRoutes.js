@@ -1,5 +1,10 @@
 const express = require("express");
 
+const {
+    autenticarToken,
+    autorizarRoles
+} = require("../middlewares/authMiddleware");
+
 const router = express.Router();
 
 const {
@@ -11,10 +16,39 @@ const {
 } = require("../controllers/aulaController");
 
 // Obtener todas las aulas
-router.get("/", obtenerAulas);
-router.get("/:id", obtenerAulaPorId);
-router.post("/", crearAula);
-router.put("/:id", actualizarAula);
-router.delete("/:id", eliminarAula);
+router.get(
+    "/",
+    autenticarToken,
+    autorizarRoles("ADMIN", "DOCENTE"),
+    obtenerAulas
+);
+
+router.get(
+    "/:id",
+    autenticarToken,
+    autorizarRoles("ADMIN", "DOCENTE"),
+    obtenerAulaPorId
+);
+
+router.post(
+    "/",
+    autenticarToken,
+    autorizarRoles("ADMIN"),
+    crearAula
+);
+
+router.put(
+    "/:id",
+    autenticarToken,
+    autorizarRoles("ADMIN"),
+    actualizarAula
+);
+
+router.delete(
+    "/:id",
+    autenticarToken,
+    autorizarRoles("ADMIN"),
+    eliminarAula
+);
 
 module.exports = router;

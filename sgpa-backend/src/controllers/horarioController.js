@@ -42,12 +42,15 @@ const obtenerHorarios = async (req, res) => {
             aula_pendiente
         } = req.query;
 
+        const idDocenteFiltro =
+            res.locals.idDocenteForzado ?? id_docente;
+
         const condiciones = [];
         const valores = [];
 
-        if (id_docente) {
+        if (idDocenteFiltro) {
             condiciones.push("a.id_docente = ?");
-            valores.push(id_docente);
+            valores.push(idDocenteFiltro);
         }
 
         if (id_grupo) {
@@ -161,10 +164,20 @@ const obtenerHorarios = async (req, res) => {
             valores
         );
 
+        const filtrosAplicados = {
+            ...req.query
+        };
+
+        if (res.locals.idDocenteForzado) {
+            filtrosAplicados.id_docente = String(
+                res.locals.idDocenteForzado
+            );
+        }
+
         res.status(200).json({
             ok: true,
             total: rows.length,
-            filtros: req.query,
+            filtros: filtrosAplicados,
             horarios: rows
         });
     } catch (error) {
@@ -175,6 +188,22 @@ const obtenerHorarios = async (req, res) => {
             mensaje: "Error al obtener los horarios"
         });
     }
+};
+// Obtener los horarios del docente autenticado
+const obtenerMiHorario = async (req, res) => {
+    const idDocente = req.usuario?.id_docente;
+
+    if (!idDocente) {
+        return res.status(403).json({
+            ok: false,
+            mensaje: "El usuario autenticado no está asociado a un docente"
+        });
+    }
+
+    // Se impone el docente obtenido del token.
+    // El usuario no puede consultar horarios de otro docente.
+    res.locals.idDocenteForzado = idDocente;
+    return obtenerHorarios(req, res);
 };
 // Obtener un horario por ID
 const obtenerHorarioPorId = async (req, res) => {
@@ -1039,6 +1068,7 @@ const exportarHorarios = async (req, res) => {
 
 module.exports = {
     obtenerHorarios,
+    obtenerMiHorario,
     obtenerHorarioPorId,
     crearHorario,
     actualizarHorario,

@@ -1,5 +1,10 @@
 const express = require("express");
 
+const {
+    autenticarToken,
+    autorizarRoles
+} = require("../middlewares/authMiddleware");
+
 const router = express.Router();
 
 const {
@@ -10,10 +15,39 @@ const {
     eliminarGrupo
 } = require("../controllers/grupoController");
 
-router.get("/", obtenerGrupos);
-router.get("/:id", obtenerGrupoPorId);
-router.post("/", crearGrupo);
-router.put("/:id", actualizarGrupo);
-router.delete("/:id", eliminarGrupo);
+router.get(
+    "/",
+    autenticarToken,
+    autorizarRoles("ADMIN", "DOCENTE"),
+    obtenerGrupos
+);
+
+router.get(
+    "/:id",
+    autenticarToken,
+    autorizarRoles("ADMIN", "DOCENTE"),
+    obtenerGrupoPorId
+);
+
+router.post(
+    "/",
+    autenticarToken,
+    autorizarRoles("ADMIN"),
+    crearGrupo
+);
+
+router.put(
+    "/:id",
+    autenticarToken,
+    autorizarRoles("ADMIN"),
+    actualizarGrupo
+);
+
+router.delete(
+    "/:id",
+    autenticarToken,
+    autorizarRoles("ADMIN"),
+    eliminarGrupo
+);
 
 module.exports = router;

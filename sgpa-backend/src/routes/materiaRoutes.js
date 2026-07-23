@@ -1,5 +1,10 @@
 const express = require("express");
 
+const {
+    autenticarToken,
+    autorizarRoles
+} = require("../middlewares/authMiddleware");
+
 const router = express.Router();
 
 const {
@@ -10,10 +15,39 @@ const {
     eliminarMateria
 } = require("../controllers/materiaController");
 
-router.get("/", obtenerMaterias);
-router.get("/:id", obtenerMateriaPorId);
-router.post("/", crearMateria);
-router.put("/:id", actualizarMateria);
-router.delete("/:id", eliminarMateria);
+router.get(
+    "/",
+    autenticarToken,
+    autorizarRoles("ADMIN", "DOCENTE"),
+    obtenerMaterias
+);
+
+router.get(
+    "/:id",
+    autenticarToken,
+    autorizarRoles("ADMIN", "DOCENTE"),
+    obtenerMateriaPorId
+);
+
+router.post(
+    "/",
+    autenticarToken,
+    autorizarRoles("ADMIN"),
+    crearMateria
+);
+
+router.put(
+    "/:id",
+    autenticarToken,
+    autorizarRoles("ADMIN"),
+    actualizarMateria
+);
+
+router.delete(
+    "/:id",
+    autenticarToken,
+    autorizarRoles("ADMIN"),
+    eliminarMateria
+);
 
 module.exports = router;
