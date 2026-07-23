@@ -39,7 +39,8 @@ const autenticarToken = async (req, res, next) => {
                 correo,
                 rol,
                 id_docente,
-                estado
+                estado,
+                debe_cambiar_password
             FROM usuario
             WHERE id_usuario = ?
             LIMIT 1`,
@@ -61,17 +62,33 @@ const autenticarToken = async (req, res, next) => {
                 mensaje: "El usuario se encuentra inactivo"
             });
         }
-
-        // Guardamos el usuario autenticado en la solicitud.
+                // Guardamos el usuario autenticado en la solicitud.
         req.usuario = {
             id_usuario: usuario.id_usuario,
             nombre: usuario.nombre,
             correo: usuario.correo,
             rol: usuario.rol,
-            id_docente: usuario.id_docente
+            id_docente: usuario.id_docente,
+            debe_cambiar_password:
+                usuario.debe_cambiar_password
         };
+        const esRutaCambioPassword =
+            req.baseUrl === "/api/auth" &&
+            req.path === "/cambiar-password";
+
+        if (
+            usuario.debe_cambiar_password === 1 &&
+            !esRutaCambioPassword
+        ) {
+            return res.status(403).json({
+                ok: false,
+                mensaje:
+                    "Debe cambiar la contraseña temporal antes de continuar"
+            });
+        }
 
         next();
+
     } catch (error) {
         if (error.name === "TokenExpiredError") {
             return res.status(401).json({
@@ -111,7 +128,6 @@ const autorizarRoles = (...rolesPermitidos) => {
                 mensaje: "No tiene permisos para realizar esta acción"
             });
         }
-
         next();
     };
 };
