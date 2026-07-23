@@ -1,14 +1,28 @@
 const db = require("../config/database");
 
-// Obtener todas las asignaciones
+
+// Obtener asignaciones
 const obtenerAsignaciones = async (req, res) => {
     try {
-        const [rows] = await db.query(`
+        const idDocenteForzado =
+            res.locals.idDocenteForzado;
+
+        const where = idDocenteForzado
+            ? "WHERE a.id_docente = ?"
+            : "";
+
+        const valores = idDocenteForzado
+            ? [idDocenteForzado]
+            : [];
+
+        const [rows] = await db.query(
+            `
             SELECT
                 a.id_asignacion,
                 a.id_docente,
                 d.cedula,
-                CONCAT(d.nombres, ' ', d.apellidos) AS nombre_docente,
+                CONCAT(d.nombres, ' ', d.apellidos)
+                    AS nombre_docente,
                 a.id_grupo,
                 g.cod_grupo,
                 g.descripcion AS descripcion_grupo,
@@ -28,22 +42,52 @@ const obtenerAsignaciones = async (req, res) => {
                 ON g.id_materia = m.id_materia
             INNER JOIN periodo_academico p
                 ON a.id_periodo = p.id_periodo
+            ${where}
             ORDER BY a.id_asignacion
-        `);
+            `,
+            valores
+        );
+
+        const filtrosAplicados = {};
+
+        if (idDocenteForzado) {
+            filtrosAplicados.id_docente = String(
+                idDocenteForzado
+            );
+        }
 
         res.status(200).json({
             ok: true,
             total: rows.length,
+            filtros: filtrosAplicados,
             asignaciones: rows
         });
     } catch (error) {
-        console.error("Error al obtener asignaciones:", error);
+        console.error(
+            "Error al obtener asignaciones:",
+            error
+        );
 
         res.status(500).json({
             ok: false,
             mensaje: "Error al obtener las asignaciones"
         });
     }
+};
+// Obtener las asignaciones del docente autenticado
+const obtenerMisAsignaciones = async (req, res) => {
+    const idDocente = req.usuario?.id_docente;
+
+    if (!idDocente) {
+        return res.status(403).json({
+            ok: false,
+            mensaje: "El usuario autenticado no está asociado a un docente"
+        });
+    }
+
+    res.locals.idDocenteForzado = idDocente;
+
+    return obtenerAsignaciones(req, res);
 };
 // Obtener una asignación por ID
 const obtenerAsignacionPorId = async (req, res) => {
@@ -412,6 +456,7 @@ const eliminarAsignacion = async (req, res) => {
 };
 module.exports = {
     obtenerAsignaciones,
+    obtenerMisAsignaciones,
     obtenerAsignacionPorId,
     crearAsignacion,
     actualizarAsignacion,

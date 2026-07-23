@@ -36,7 +36,8 @@ const obtenerDocentes = async (req, res) => {
 // Obtener un docente por ID
 const obtenerDocentePorId = async (req, res) => {
     try {
-        const { id } = req.params;
+        const idDocente =
+            res.locals.idDocenteForzado ?? req.params.id;
 
         const [rows] = await db.query(
             `
@@ -53,7 +54,7 @@ const obtenerDocentePorId = async (req, res) => {
             FROM docente
             WHERE id_docente = ?
             `,
-            [id]
+            [idDocente]
         );
 
         if (rows.length === 0) {
@@ -75,6 +76,23 @@ const obtenerDocentePorId = async (req, res) => {
             mensaje: "Error al obtener el docente"
         });
     }
+};
+
+// Obtener el perfil del docente autenticado
+const obtenerMiPerfil = async (req, res) => {
+    const idDocente = req.usuario?.id_docente;
+
+    if (!idDocente) {
+        return res.status(403).json({
+            ok: false,
+            mensaje: "El usuario autenticado no está asociado a un docente"
+        });
+    }
+
+    // El ID se obtiene del token y no de la URL.
+    res.locals.idDocenteForzado = idDocente;
+
+    return obtenerDocentePorId(req, res);
 };
 
 // Crear docente
@@ -311,6 +329,7 @@ const eliminarDocente = async (req, res) => {
 
 module.exports = {
     obtenerDocentes,
+    obtenerMiPerfil,
     obtenerDocentePorId,
     crearDocente,
     actualizarDocente,

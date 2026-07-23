@@ -9,6 +9,7 @@ const router = express.Router();
 
 const {
     obtenerAsignaciones,
+    obtenerMisAsignaciones,
     obtenerAsignacionPorId,
     crearAsignacion,
     actualizarAsignacion,
@@ -21,6 +22,13 @@ router.get(
     autenticarToken,
     autorizarRoles("ADMIN"),
     obtenerAsignaciones
+);
+
+router.get(
+    "/mis-asignaciones",
+    autenticarToken,
+    autorizarRoles("DOCENTE"),
+    obtenerMisAsignaciones
 );
 
 router.get(

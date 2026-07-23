@@ -9,6 +9,7 @@ const router = express.Router();
 
 const {
     obtenerDocentes,
+    obtenerMiPerfil,
     obtenerDocentePorId,
     crearDocente,
     actualizarDocente,
@@ -20,6 +21,13 @@ router.get(
     autenticarToken,
     autorizarRoles("ADMIN"),
     obtenerDocentes
+);
+
+router.get(
+    "/mi-perfil",
+    autenticarToken,
+    autorizarRoles("DOCENTE"),
+    obtenerMiPerfil
 );
 
 router.get(
