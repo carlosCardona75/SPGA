@@ -1,5 +1,5 @@
 const db = require("../config/database");
-const xlsx = require("xlsx");
+const ExcelJS = require("exceljs");
 
 const DIAS_VALIDOS = [
     "LUNES",
@@ -1000,39 +1000,126 @@ const exportarHorarios = async (req, res) => {
             });
         }
 
-        // Convertir los registros de MySQL en una hoja de Excel
-        const hoja = xlsx.utils.json_to_sheet(horarios);
+        // Crear el libro y la hoja de Excel
+        const libro = new ExcelJS.Workbook();
+        libro.creator = "SGPA";
+        libro.created = new Date();
 
-        // Definir anchos para mejorar la presentación de las columnas
-        hoja["!cols"] = [
-            { wch: 20 },
-            { wch: 35 },
-            { wch: 18 },
-            { wch: 35 },
-            { wch: 12 },
-            { wch: 40 },
-            { wch: 15 },
-            { wch: 18 },
-            { wch: 14 },
-            { wch: 12 },
-            { wch: 12 },
-            { wch: 12 }
+        const hoja = libro.addWorksheet("Horarios");
+
+        // Definir encabezados, campos y anchos de columnas
+        hoja.columns = [
+            {
+                header: "documento_docente",
+                key: "documento_docente",
+                width: 20
+            },
+            {
+                header: "docente",
+                key: "docente",
+                width: 35
+            },
+            {
+                header: "codigo_materia",
+                key: "codigo_materia",
+                width: 18
+            },
+            {
+                header: "materia",
+                key: "materia",
+                width: 35
+            },
+            {
+                header: "grupo",
+                key: "grupo",
+                width: 12
+            },
+            {
+                header: "descripcion_grupo",
+                key: "descripcion_grupo",
+                width: 40
+            },
+            {
+                header: "periodo",
+                key: "periodo",
+                width: 15
+            },
+            {
+                header: "aula",
+                key: "aula",
+                width: 18
+            },
+            {
+                header: "dia_semana",
+                key: "dia_semana",
+                width: 14
+            },
+            {
+                header: "hora_inicio",
+                key: "hora_inicio",
+                width: 12
+            },
+            {
+                header: "hora_fin",
+                key: "hora_fin",
+                width: 12
+            },
+            {
+                header: "estado",
+                key: "estado",
+                width: 12
+            }
         ];
 
-        // Crear el libro y agregarle la hoja
-        const libro = xlsx.utils.book_new();
+        // Agregar los registros obtenidos desde MySQL
+        hoja.addRows(horarios);
 
-        xlsx.utils.book_append_sheet(
-            libro,
-            hoja,
-            "Horarios"
+        // Dar formato profesional al encabezado
+        const encabezado = hoja.getRow(1);
+
+        encabezado.font = {
+            bold: true,
+            color: {
+                argb: "FFFFFFFF"
+            }
+        };
+
+        encabezado.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: {
+                argb: "FF1F4E78"
+            }
+        };
+
+        encabezado.alignment = {
+            vertical: "middle",
+            horizontal: "center"
+        };
+
+        // Mantener visible el encabezado y habilitar filtros
+        hoja.views = [
+            {
+                state: "frozen",
+                ySplit: 1
+            }
+        ];
+
+        hoja.autoFilter = {
+            from: {
+                row: 1,
+                column: 1
+            },
+            to: {
+                row: 1,
+                column: 12
+            }
+        };
+
+        // Generar el archivo Excel en memoria
+        const archivoExcel = Buffer.from(
+            await libro.xlsx.writeBuffer()
         );
-
-        // Generar el archivo en memoria
-        const archivoExcel = xlsx.write(libro, {
-            type: "buffer",
-            bookType: "xlsx"
-        });
 
         // Indicarle al navegador que la respuesta es una descarga
         res.setHeader(
