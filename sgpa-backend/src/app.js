@@ -19,7 +19,12 @@ const app = express();
 // =============================
 // Middlewares
 // =============================
-app.use(cors());
+const corsOptions = {
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173",
+    credentials: true
+};
+app.use(cors(corsOptions));
+
 app.use(express.json());
 
 // =============================
@@ -54,6 +59,38 @@ app.use("/api/asignaciones", asignacionRoutes);
 app.use("/api/horarios", horarioRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/usuarios", usuarioRoutes);
+
+// =============================
+// Ruta no encontrada
+// =============================
+app.use((req, res) => {
+    res.status(404).json({
+        ok: false,
+        mensaje: "Ruta no encontrada"
+    });
+});
+
+// =============================
+// Manejador global de errores
+// =============================
+app.use((error, req, res, next) => {
+    if (
+        error instanceof SyntaxError &&
+        error.status === 400 &&
+        Object.prototype.hasOwnProperty.call(error, "body")
+    ) {
+        return res.status(400).json({
+            ok: false,
+            mensaje: "El cuerpo JSON no tiene un formato válido"
+        });
+    }
+    console.error("Error no controlado:", error);
+
+    res.status(500).json({
+        ok: false,
+        mensaje: "Error interno del servidor"
+    });
+});
 
 // =============================
 // Verificar conexión con MySQL
