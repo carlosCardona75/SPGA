@@ -419,10 +419,27 @@ La documentación detallada de pruebas se encuentra en:
 
 La guía incluye escenarios de prueba, validaciones, respuestas esperadas y procedimientos temporales utilizados para demostrar reglas de negocio.
 
-Antes de publicar una versión se recomienda ejecutar:
+## Auditoría de dependencias
 
-`npm audit --omit=dev`
+Antes de publicar una versión se debe ejecutar:
 
-El resultado esperado es:
+```bash
+npm audit --omit=dev
 
-`found 0 vulnerabilities`
+```
+
+Al 24 de julio de 2026, npm reporta una alerta de severidad alta en `brace-expansion`, incorporada de forma transitiva por `exceljs` mediante `archiver`, `glob` y `minimatch`.
+
+La vulnerabilidad requiere procesar patrones de archivos controlados por un atacante. El SGPA no recibe ni ejecuta patrones `glob` enviados por usuarios; ExcelJS se utiliza únicamente para generar archivos `.xlsx` desde consultas internas y la exportación está protegida mediante autenticación.
+
+Por esta razón se adopta temporalmente la siguiente decisión:
+
+- No ejecutar `npm audit fix --force`.
+- Mantener `exceljs` en la versión funcional validada.
+- No aceptar nombres de archivo ni patrones de búsqueda proporcionados por el cliente para generar la exportación.
+- Mantener la ruta de exportación protegida mediante token.
+- Revisar periódicamente las actualizaciones de ExcelJS y Archiver.
+- Actualizar la dependencia cuando exista una solución compatible y volver a ejecutar las pruebas de exportación.
+
+Esta excepción debe reevaluarse antes del despliegue institucional.
+
