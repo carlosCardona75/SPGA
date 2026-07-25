@@ -7,7 +7,7 @@ function MainLayout({ children }) {
       style={{
         display: "flex",
         minHeight: "100vh",
-        background: "#f5f7fb",
+        background: "#F8F9FA",
       }}
     >
       <Sidebar />
@@ -23,7 +23,8 @@ function MainLayout({ children }) {
 
         <main
           style={{
-            padding: "30px",
+            padding: "32px",
+            flex: 1,
           }}
         >
           {children}
