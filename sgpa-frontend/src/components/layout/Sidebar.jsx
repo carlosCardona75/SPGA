@@ -15,10 +15,11 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const opciones = [
-  { texto: "Dashboard", icono: DashboardIcon, activa: true },
-  { texto: "Docentes", icono: PeopleIcon },
+  { texto: "Dashboard", icono: DashboardIcon, ruta: "/dashboard" },
+  { texto: "Docentes", icono: PeopleIcon, ruta: "/docentes" },
   { texto: "Materias", icono: MenuBookIcon },
   { texto: "Grupos", icono: GroupsIcon },
   { texto: "Aulas", icono: MeetingRoomIcon },
@@ -29,6 +30,8 @@ const opciones = [
 ];
 
 function Sidebar() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const usuarioGuardado = sessionStorage.getItem("sgpa_usuario");
   const usuario = usuarioGuardado ? JSON.parse(usuarioGuardado) : null;
   const iniciales = usuario?.nombre
@@ -88,10 +91,15 @@ function Sidebar() {
         </Typography>
 
         <Stack spacing={0.5} mt={1}>
-          {opciones.map(({ texto, icono: Icono, activa }) => (
+          {opciones.map(({ texto, icono: Icono, ruta }) => {
+            const activa = location.pathname === ruta;
+            const habilitada = Boolean(ruta);
+
+            return (
             <ButtonBase
               key={texto}
-              disabled={!activa}
+              disabled={!habilitada}
+              onClick={() => navigate(ruta)}
               sx={{
                 width: "100%",
                 justifyContent: "flex-start",
@@ -114,7 +122,8 @@ function Sidebar() {
                 {texto}
               </Typography>
             </ButtonBase>
-          ))}
+            );
+          })}
         </Stack>
       </Box>
 
