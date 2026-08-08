@@ -1,10 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import {
   Alert,
   Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  MenuItem,
   Card,
+  Chip,
   CircularProgress,
+  IconButton,
   InputAdornment,
   Table,
   TableBody,
@@ -18,7 +27,10 @@ import {
 } from "@mui/material";
 
 import MainLayout from "../../layouts/MainLayout";
-import { obtenerMaterias } from "../../services/materiaService";
+import {
+  actualizarMateria,
+  obtenerMaterias,
+} from "../../services/materiaService";
 
 function Materias() {
   const [materias, setMaterias] = useState([]);
@@ -27,6 +39,11 @@ function Materias() {
   const [filasPorPagina, setFilasPorPagina] = useState(10);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [materiaSeleccionada, setMateriaSeleccionada] = useState(null);
+  const [formularioAbierto, setFormularioAbierto] = useState(false);
+  const [errorFormulario, setErrorFormulario] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [mensajeExito, setMensajeExito] = useState("");
 
   useEffect(() => {
     const cargarMaterias = async () => {
@@ -72,6 +89,86 @@ function Materias() {
     setPagina(0);
   };
 
+  const abrirFormularioEdicion = (materia) => {
+    setMateriaSeleccionada({ ...materia });
+    setFormularioAbierto(true);
+    setErrorFormulario("");
+  };
+
+  const cerrarFormularioEdicion = () => {
+    setFormularioAbierto(false);
+    setMateriaSeleccionada(null);
+    setErrorFormulario("");
+  };
+
+  const cambiarCampoFormulario = (event) => {
+    const { name, value } = event.target;
+
+    setMateriaSeleccionada((materiaActual) => ({
+      ...materiaActual,
+      [name]: value,
+    }));
+  };
+
+  const guardarCambiosMateria = async () => {
+    const codigo = materiaSeleccionada.codigo?.trim();
+    const nombreMateria = materiaSeleccionada.nombre_materia?.trim();
+
+    if (!codigo || !nombreMateria) {
+      setErrorFormulario(
+        "El código y el nombre de la materia son obligatorios.",
+      );
+      return;
+    }
+
+    const convertirNumeroOpcional = (valor) => {
+      return valor === "" || valor === null ? null : Number(valor);
+    };
+
+    const datosMateria = {
+      codigo,
+      nombre_materia: nombreMateria,
+      semestre: convertirNumeroOpcional(materiaSeleccionada.semestre),
+      creditos: convertirNumeroOpcional(materiaSeleccionada.creditos),
+      horas_semanales: convertirNumeroOpcional(
+        materiaSeleccionada.horas_semanales,
+      ),
+      estado: Number(materiaSeleccionada.estado),
+    };
+
+    try {
+      setGuardando(true);
+      setErrorFormulario("");
+      setMensajeExito("");
+
+      const respuesta = await actualizarMateria(
+        materiaSeleccionada.id_materia,
+        datosMateria,
+      );
+
+      setMaterias((materiasActuales) =>
+        materiasActuales.map((materia) =>
+          materia.id_materia === materiaSeleccionada.id_materia
+            ? { ...materia, ...datosMateria }
+            : materia,
+        ),
+      );
+
+      setMensajeExito(
+        respuesta.mensaje || "Materia actualizada correctamente.",
+      );
+
+      cerrarFormularioEdicion();
+    } catch (solicitudError) {
+      setErrorFormulario(
+        solicitudError.response?.data?.mensaje ||
+          "No fue posible actualizar la materia.",
+      );
+    } finally {
+      setGuardando(false);
+    }
+  };
+
   const cambiarPagina = (event, nuevaPagina) => {
     setPagina(nuevaPagina);
   };
@@ -104,6 +201,12 @@ function Materias() {
           </Alert>
         )}
 
+        {mensajeExito && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            {mensajeExito}
+          </Alert>
+        )}
+
         {!cargando && !error && (
           <Card variant="outlined">
             <Box
@@ -116,6 +219,102 @@ function Materias() {
                 flexWrap: "wrap",
               }}
             >
+              <Dialog
+                open={formularioAbierto}
+                onClose={cerrarFormularioEdicion}
+                fullWidth
+                maxWidth="sm"
+              >
+                <DialogTitle>Editar materia</DialogTitle>
+
+                <DialogContent>
+                  {errorFormulario && (
+                    <Alert severity="error" sx={{ mb: 2 }}>
+                      {errorFormulario}
+                    </Alert>
+                  )}
+                  {materiaSeleccionada && (
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                        gap: 2,
+                        pt: 1,
+                      }}
+                    >
+                      <TextField
+                        label="Código"
+                        name="codigo"
+                        value={materiaSeleccionada.codigo ?? ""}
+                        onChange={cambiarCampoFormulario}
+                        required
+                        fullWidth
+                      />
+
+                      <TextField
+                        label="Nombre de la materia"
+                        name="nombre_materia"
+                        value={materiaSeleccionada.nombre_materia ?? ""}
+                        onChange={cambiarCampoFormulario}
+                        required
+                        fullWidth
+                      />
+
+                      <TextField
+                        label="Semestre"
+                        name="semestre"
+                        type="number"
+                        value={materiaSeleccionada.semestre ?? ""}
+                        onChange={cambiarCampoFormulario}
+                        fullWidth
+                      />
+
+                      <TextField
+                        label="Créditos"
+                        name="creditos"
+                        type="number"
+                        value={materiaSeleccionada.creditos ?? ""}
+                        onChange={cambiarCampoFormulario}
+                        fullWidth
+                      />
+
+                      <TextField
+                        label="Horas semanales"
+                        name="horas_semanales"
+                        type="number"
+                        value={materiaSeleccionada.horas_semanales ?? ""}
+                        onChange={cambiarCampoFormulario}
+                        fullWidth
+                      />
+
+                      <TextField
+                        select
+                        label="Estado"
+                        name="estado"
+                        value={Number(materiaSeleccionada.estado)}
+                        onChange={cambiarCampoFormulario}
+                        required
+                        fullWidth
+                      >
+                        <MenuItem value={1}>Activo</MenuItem>
+                        <MenuItem value={0}>Inactivo</MenuItem>
+                      </TextField>
+                    </Box>
+                  )}
+                </DialogContent>
+
+                <DialogActions>
+                  <Button onClick={cerrarFormularioEdicion}>Cancelar</Button>
+
+                  <Button
+                    variant="contained"
+                    onClick={guardarCambiosMateria}
+                    disabled={guardando}
+                  >
+                    {guardando ? "Guardando..." : "Guardar cambios"}
+                  </Button>
+                </DialogActions>
+              </Dialog>
               <Box>
                 <Typography variant="h6" fontWeight={700}>
                   Listado de materias
@@ -153,6 +352,7 @@ function Materias() {
                     <TableCell align="center">Créditos</TableCell>
                     <TableCell align="center">Horas semanales</TableCell>
                     <TableCell align="center">Estado</TableCell>
+                    <TableCell align="center">Acciones</TableCell>
                   </TableRow>
                 </TableHead>
 
@@ -167,14 +367,32 @@ function Materias() {
                         {materia.horas_semanales}
                       </TableCell>
                       <TableCell align="center">
-                        {Number(materia.estado) === 1 ? "Activo" : "Inactivo"}
+                        <Chip
+                          label={
+                            Number(materia.estado) === 1 ? "Activo" : "Inactivo"
+                          }
+                          color={
+                            Number(materia.estado) === 1 ? "success" : "default"
+                          }
+                          variant="outlined"
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          color="primary"
+                          aria-label={`Editar ${materia.nombre_materia}`}
+                          onClick={() => abrirFormularioEdicion(materia)}
+                        >
+                          <EditOutlinedIcon />
+                        </IconButton>
                       </TableCell>
                     </TableRow>
                   ))}
 
                   {materiasVisibles.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={6} align="center">
+                      <TableCell colSpan={7} align="center">
                         No se encontraron materias.
                       </TableCell>
                     </TableRow>
