@@ -20,7 +20,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 const opciones = [
   { texto: "Dashboard", icono: DashboardIcon, ruta: "/dashboard" },
   { texto: "Docentes", icono: PeopleIcon, ruta: "/docentes" },
-  { texto: "Materias", icono: MenuBookIcon },
+  { texto: "Materias", icono: MenuBookIcon, ruta: "/materias" },
   { texto: "Grupos", icono: GroupsIcon },
   { texto: "Aulas", icono: MeetingRoomIcon },
   { texto: "Períodos académicos", icono: CalendarMonthIcon },
