@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import AddIcon from "@mui/icons-material/Add";
 
 import {
   Alert,
@@ -30,6 +31,7 @@ import {
 import MainLayout from "../../layouts/MainLayout";
 import {
   actualizarDocente,
+  crearDocente,
   obtenerDocentes,
 } from "../../services/docenteService";
 
@@ -94,6 +96,23 @@ function Docentes() {
     setPagina(0);
   };
 
+  const abrirFormularioCreacion = () => {
+    setDocenteSeleccionado({
+      cedula: "",
+      id_banner: "",
+      nombres: "",
+      apellidos: "",
+      correo: "",
+      telefono: "",
+      max_horas: 40,
+      estado: 1,
+    });
+
+    setErrorFormulario("");
+    setMensajeExito("");
+    setFormularioAbierto(true);
+  };
+
   const abrirFormularioEdicion = (docente) => {
     setDocenteSeleccionado({ ...docente });
     setErrorFormulario("");
@@ -118,6 +137,21 @@ function Docentes() {
   const guardarCambiosDocente = async () => {
     if (!docenteSeleccionado) return;
 
+    const camposObligatorios = [
+      docenteSeleccionado.cedula,
+      docenteSeleccionado.id_banner,
+      docenteSeleccionado.nombres,
+      docenteSeleccionado.apellidos,
+      docenteSeleccionado.correo,
+    ];
+
+    if (camposObligatorios.some((campo) => !String(campo ?? "").trim())) {
+      setErrorFormulario(
+        "Cédula, Banner, nombres, apellidos y correo son obligatorios.",
+      );
+      return;
+    }
+
     const maxHoras = Number(docenteSeleccionado.max_horas);
 
     if (!Number.isInteger(maxHoras) || maxHoras < 1 || maxHoras > 40) {
@@ -137,26 +171,39 @@ function Docentes() {
         estado: Number(docenteSeleccionado.estado),
       };
 
-      await actualizarDocente(
-        docenteSeleccionado.id_docente,
-        datosActualizados,
-      );
+      if (docenteSeleccionado.id_docente) {
+        await actualizarDocente(
+          docenteSeleccionado.id_docente,
+          datosActualizados,
+        );
 
-      setMensajeExito("Docente actualizado correctamente.");
+        setDocentes((docentesActuales) =>
+          docentesActuales.map((docente) =>
+            docente.id_docente === docenteSeleccionado.id_docente
+              ? datosActualizados
+              : docente,
+          ),
+        );
 
-      setDocentes((docentesActuales) =>
-        docentesActuales.map((docente) =>
-          docente.id_docente === docenteSeleccionado.id_docente
-            ? datosActualizados
-            : docente,
-        ),
-      );
+        setMensajeExito("Docente actualizado correctamente.");
+      } else {
+        const respuesta = await crearDocente(datosActualizados);
+
+        const docenteCreado = {
+          ...datosActualizados,
+          id_docente: respuesta.id_docente,
+        };
+
+        setDocentes((docentesActuales) => [docenteCreado, ...docentesActuales]);
+
+        setMensajeExito("Docente creado correctamente.");
+      }
 
       cerrarFormularioEdicion();
     } catch (solicitudError) {
       setErrorFormulario(
         solicitudError.response?.data?.mensaje ||
-          "No es posible actualizar el docente.",
+          "No fue posible guardar el docente.",
       );
     } finally {
       setGuardando(false);
@@ -165,11 +212,30 @@ function Docentes() {
 
   return (
     <MainLayout>
-      <Box mb={3}>
-        <Typography variant="h4">Docentes</Typography>
-        <Typography color="text.secondary">
-          Consulta del personal docente registrado en el SGPA.
-        </Typography>
+      <Box
+        mb={3}
+        sx={{
+          display: "flex",
+          gap: 2,
+          alignItems: { xs: "stretch", sm: "center" },
+          justifyContent: "space-between",
+          flexDirection: { xs: "column", sm: "row" },
+        }}
+      >
+        <Box>
+          <Typography variant="h4">Docentes</Typography>
+          <Typography color="text.secondary">
+            Consulta del personal docente registrado en el SGPA.
+          </Typography>
+        </Box>
+
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={abrirFormularioCreacion}
+        >
+          Nuevo docente
+        </Button>
       </Box>
 
       <Card
@@ -312,7 +378,9 @@ function Docentes() {
         fullWidth
         maxWidth="sm"
       >
-        <DialogTitle>Editar docente</DialogTitle>
+        <DialogTitle>
+          {docenteSeleccionado?.id_docente ? "Editar docente" : "Nuevo docente"}
+        </DialogTitle>
 
         <DialogContent>
           {errorFormulario && (
@@ -424,7 +492,11 @@ function Docentes() {
             onClick={guardarCambiosDocente}
             disabled={guardando}
           >
-            {guardando ? "Guardando..." : "Guardar cambios"}
+            {guardando
+              ? "Guardando..."
+              : docenteSeleccionado?.id_docente
+                ? "Guardar cambios"
+                : "Crear docente"}
           </Button>
         </DialogActions>
       </Dialog>
