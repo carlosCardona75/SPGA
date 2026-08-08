@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 import {
   Alert,
   Box,
@@ -29,8 +31,19 @@ import {
 import MainLayout from "../../layouts/MainLayout";
 import {
   actualizarMateria,
+  crearMateria,
+  eliminarMateria,
   obtenerMaterias,
 } from "../../services/materiaService";
+
+const crearMateriaVacia = () => ({
+  codigo: "",
+  nombre_materia: "",
+  semestre: "",
+  creditos: "",
+  horas_semanales: "",
+  estado: 1,
+});
 
 function Materias() {
   const [materias, setMaterias] = useState([]);
@@ -44,6 +57,10 @@ function Materias() {
   const [errorFormulario, setErrorFormulario] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [mensajeExito, setMensajeExito] = useState("");
+  const [modoFormulario, setModoFormulario] = useState("editar");
+  const [materiaAEliminar, setMateriaAEliminar] = useState(null);
+  const [errorEliminacion, setErrorEliminacion] = useState("");
+  const [eliminando, setEliminando] = useState(false);
 
   useEffect(() => {
     const cargarMaterias = async () => {
@@ -90,12 +107,24 @@ function Materias() {
   };
 
   const abrirFormularioEdicion = (materia) => {
+    setModoFormulario("editar");
     setMateriaSeleccionada({ ...materia });
     setFormularioAbierto(true);
     setErrorFormulario("");
+    setMensajeExito("");
   };
 
-  const cerrarFormularioEdicion = () => {
+  const abrirFormularioCreacion = () => {
+    setModoFormulario("crear");
+    setMateriaSeleccionada(crearMateriaVacia());
+    setFormularioAbierto(true);
+    setErrorFormulario("");
+    setMensajeExito("");
+  };
+
+  const cerrarFormulario = () => {
+    if (guardando) return;
+
     setFormularioAbierto(false);
     setMateriaSeleccionada(null);
     setErrorFormulario("");
@@ -110,62 +139,162 @@ function Materias() {
     }));
   };
 
-  const guardarCambiosMateria = async () => {
+  const convertirNumeroOpcional = (valor) => {
+    return valor === "" || valor === null ? null : Number(valor);
+  };
+
+  const validarEnteroPositivoOpcional = (valor, nombreCampo) => {
+    if (valor === "" || valor === null) return "";
+
+    const numero = Number(valor);
+    if (!Number.isInteger(numero) || numero < 1) {
+      return `${nombreCampo} debe ser un número entero positivo.`;
+    }
+
+    return "";
+  };
+
+  const construirDatosMateria = () => {
     const codigo = materiaSeleccionada.codigo?.trim();
     const nombreMateria = materiaSeleccionada.nombre_materia?.trim();
 
     if (!codigo || !nombreMateria) {
-      setErrorFormulario(
-        "El código y el nombre de la materia son obligatorios.",
-      );
-      return;
+      return {
+        error: "El código y el nombre de la materia son obligatorios.",
+      };
     }
 
-    const convertirNumeroOpcional = (valor) => {
-      return valor === "" || valor === null ? null : Number(valor);
-    };
-
-    const datosMateria = {
-      codigo,
-      nombre_materia: nombreMateria,
-      semestre: convertirNumeroOpcional(materiaSeleccionada.semestre),
-      creditos: convertirNumeroOpcional(materiaSeleccionada.creditos),
-      horas_semanales: convertirNumeroOpcional(
-        materiaSeleccionada.horas_semanales,
+    const validacionesNumericas = [
+      validarEnteroPositivoOpcional(
+        materiaSeleccionada.semestre,
+        "El semestre",
       ),
-      estado: Number(materiaSeleccionada.estado),
+      validarEnteroPositivoOpcional(
+        materiaSeleccionada.creditos,
+        "Los créditos",
+      ),
+      validarEnteroPositivoOpcional(
+        materiaSeleccionada.horas_semanales,
+        "Las horas semanales",
+      ),
+    ];
+
+    const errorNumerico = validacionesNumericas.find(Boolean);
+    if (errorNumerico) return { error: errorNumerico };
+
+    return {
+      datos: {
+        codigo,
+        nombre_materia: nombreMateria,
+        semestre: convertirNumeroOpcional(materiaSeleccionada.semestre),
+        creditos: convertirNumeroOpcional(materiaSeleccionada.creditos),
+        horas_semanales: convertirNumeroOpcional(
+          materiaSeleccionada.horas_semanales,
+        ),
+        estado: Number(materiaSeleccionada.estado),
+      },
     };
+  };
+
+  const guardarMateria = async () => {
+    const { datos: datosMateria, error: errorValidacion } =
+      construirDatosMateria();
+
+    if (errorValidacion) {
+      setErrorFormulario(errorValidacion);
+      return;
+    }
 
     try {
       setGuardando(true);
       setErrorFormulario("");
       setMensajeExito("");
 
-      const respuesta = await actualizarMateria(
-        materiaSeleccionada.id_materia,
-        datosMateria,
-      );
+      let respuesta;
 
-      setMaterias((materiasActuales) =>
-        materiasActuales.map((materia) =>
-          materia.id_materia === materiaSeleccionada.id_materia
-            ? { ...materia, ...datosMateria }
-            : materia,
-        ),
-      );
+      if (modoFormulario === "crear") {
+        respuesta = await crearMateria(datosMateria);
+        const nuevaMateria = {
+          id_materia: respuesta.id_materia,
+          ...datosMateria,
+        };
+        setMaterias((materiasActuales) => [nuevaMateria, ...materiasActuales]);
+        setPagina(0);
+      } else {
+        respuesta = await actualizarMateria(
+          materiaSeleccionada.id_materia,
+          datosMateria,
+        );
+
+        setMaterias((materiasActuales) =>
+          materiasActuales.map((materia) =>
+            materia.id_materia === materiaSeleccionada.id_materia
+              ? { ...materia, ...datosMateria }
+              : materia,
+          ),
+        );
+      }
 
       setMensajeExito(
-        respuesta.mensaje || "Materia actualizada correctamente.",
+        respuesta.mensaje ||
+          (modoFormulario === "crear"
+            ? "Materia creada correctamente."
+            : "Materia actualizada correctamente."),
       );
 
-      cerrarFormularioEdicion();
+      setFormularioAbierto(false);
+      setMateriaSeleccionada(null);
     } catch (solicitudError) {
       setErrorFormulario(
         solicitudError.response?.data?.mensaje ||
-          "No fue posible actualizar la materia.",
+          `No fue posible ${modoFormulario === "crear" ? "crear" : "actualizar"} la materia.`,
       );
     } finally {
       setGuardando(false);
+    }
+  };
+
+  const abrirConfirmacionEliminacion = (materia) => {
+    setMateriaAEliminar(materia);
+    setErrorEliminacion("");
+    setMensajeExito("");
+  };
+
+  const cerrarConfirmacionEliminacion = () => {
+    if (eliminando) return;
+
+    setMateriaAEliminar(null);
+    setErrorEliminacion("");
+  };
+
+  const confirmarEliminacion = async () => {
+    try {
+      setEliminando(true);
+      setErrorEliminacion("");
+
+      const respuesta = await eliminarMateria(materiaAEliminar.id_materia);
+      const materiasRestantes = materias.filter(
+        (materia) => materia.id_materia !== materiaAEliminar.id_materia,
+      );
+
+      setMaterias(materiasRestantes);
+      setMensajeExito(
+        respuesta.mensaje || "Materia eliminada correctamente.",
+      );
+      setMateriaAEliminar(null);
+
+      const totalPaginas = Math.max(
+        1,
+        Math.ceil(materiasRestantes.length / filasPorPagina),
+      );
+      setPagina((paginaActual) => Math.min(paginaActual, totalPaginas - 1));
+    } catch (solicitudError) {
+      setErrorEliminacion(
+        solicitudError.response?.data?.mensaje ||
+          "No fue posible eliminar la materia.",
+      );
+    } finally {
+      setEliminando(false);
     }
   };
 
@@ -181,13 +310,34 @@ function Materias() {
   return (
     <MainLayout>
       <Box>
-        <Typography variant="h4" fontWeight={700}>
-          Materias
-        </Typography>
+        <Box
+          sx={{
+            mb: 3,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-end",
+            gap: 2,
+            flexWrap: "wrap",
+          }}
+        >
+          <Box>
+            <Typography variant="h4" fontWeight={700}>
+              Materias
+            </Typography>
 
-        <Typography color="text.secondary" sx={{ mb: 3 }}>
-          Consulta de las materias registradas en el SGPA.
-        </Typography>
+            <Typography color="text.secondary">
+              Consulta y administración de las materias registradas en el SGPA.
+            </Typography>
+          </Box>
+
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={abrirFormularioCreacion}
+          >
+            Nueva materia
+          </Button>
+        </Box>
 
         {cargando && (
           <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
@@ -221,11 +371,15 @@ function Materias() {
             >
               <Dialog
                 open={formularioAbierto}
-                onClose={cerrarFormularioEdicion}
+                onClose={cerrarFormulario}
                 fullWidth
                 maxWidth="sm"
               >
-                <DialogTitle>Editar materia</DialogTitle>
+                <DialogTitle>
+                  {modoFormulario === "crear"
+                    ? "Nueva materia"
+                    : "Editar materia"}
+                </DialogTitle>
 
                 <DialogContent>
                   {errorFormulario && (
@@ -304,14 +458,20 @@ function Materias() {
                 </DialogContent>
 
                 <DialogActions>
-                  <Button onClick={cerrarFormularioEdicion}>Cancelar</Button>
+                  <Button onClick={cerrarFormulario} disabled={guardando}>
+                    Cancelar
+                  </Button>
 
                   <Button
                     variant="contained"
-                    onClick={guardarCambiosMateria}
+                    onClick={guardarMateria}
                     disabled={guardando}
                   >
-                    {guardando ? "Guardando..." : "Guardar cambios"}
+                    {guardando
+                      ? "Guardando..."
+                      : modoFormulario === "crear"
+                        ? "Crear materia"
+                        : "Guardar cambios"}
                   </Button>
                 </DialogActions>
               </Dialog>
@@ -386,6 +546,14 @@ function Materias() {
                         >
                           <EditOutlinedIcon />
                         </IconButton>
+
+                        <IconButton
+                          color="error"
+                          aria-label={`Eliminar ${materia.nombre_materia}`}
+                          onClick={() => abrirConfirmacionEliminacion(materia)}
+                        >
+                          <DeleteOutlineIcon />
+                        </IconButton>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -413,6 +581,48 @@ function Materias() {
             />
           </Card>
         )}
+
+        <Dialog
+          open={Boolean(materiaAEliminar)}
+          onClose={cerrarConfirmacionEliminacion}
+          fullWidth
+          maxWidth="xs"
+        >
+          <DialogTitle>Eliminar materia</DialogTitle>
+
+          <DialogContent>
+            {errorEliminacion && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {errorEliminacion}
+              </Alert>
+            )}
+
+            <Typography>
+              ¿Está seguro de eliminar la materia{" "}
+              <strong>{materiaAEliminar?.nombre_materia}</strong>?
+            </Typography>
+            <Typography color="text.secondary" sx={{ mt: 1 }}>
+              Esta acción no se puede deshacer.
+            </Typography>
+          </DialogContent>
+
+          <DialogActions>
+            <Button
+              onClick={cerrarConfirmacionEliminacion}
+              disabled={eliminando}
+            >
+              Cancelar
+            </Button>
+            <Button
+              color="error"
+              variant="contained"
+              onClick={confirmarEliminacion}
+              disabled={eliminando}
+            >
+              {eliminando ? "Eliminando..." : "Eliminar"}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </MainLayout>
   );
