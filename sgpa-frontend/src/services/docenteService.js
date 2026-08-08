@@ -15,3 +15,7 @@ export const crearDocente = async (datosDocente) => {
   return data;
 };
 
+export const eliminarDocente = async (idDocente) => {
+  const { data } = await api.delete(`/docentes/${idDocente}`);
+  return data;
+};

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import SearchIcon from "@mui/icons-material/Search";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import AddIcon from "@mui/icons-material/Add";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
 
 import {
   Alert,
@@ -32,6 +33,7 @@ import MainLayout from "../../layouts/MainLayout";
 import {
   actualizarDocente,
   crearDocente,
+  eliminarDocente,
   obtenerDocentes,
 } from "../../services/docenteService";
 
@@ -40,6 +42,10 @@ function Docentes() {
   const [busqueda, setBusqueda] = useState("");
   const [docenteSeleccionado, setDocenteSeleccionado] = useState(null);
   const [formularioAbierto, setFormularioAbierto] = useState(false);
+  const [docenteAEliminar, setDocenteAEliminar] = useState(null);
+  const [confirmacionEliminarAbierta, setConfirmacionEliminarAbierta] =
+    useState(false);
+  const [eliminando, setEliminando] = useState(false);
   const [pagina, setPagina] = useState(0);
   const [filasPorPagina, setFilasPorPagina] = useState(10);
   const [cargando, setCargando] = useState(true);
@@ -124,6 +130,47 @@ function Docentes() {
     setFormularioAbierto(false);
     setDocenteSeleccionado(null);
     setErrorFormulario("");
+  };
+
+  const abrirConfirmacionEliminar = (docente) => {
+    setDocenteAEliminar(docente);
+    setErrorFormulario("");
+    setConfirmacionEliminarAbierta(true);
+  };
+
+  const cerrarConfirmacionEliminar = () => {
+    setConfirmacionEliminarAbierta(false);
+    setDocenteAEliminar(null);
+    setErrorFormulario("");
+  };
+
+  const confirmarEliminacionDocente = async () => {
+    if (!docenteAEliminar) {
+      return;
+    }
+
+    setEliminando(true);
+    setErrorFormulario("");
+
+    try {
+      await eliminarDocente(docenteAEliminar.id_docente);
+
+      setDocentes((docentesActuales) =>
+        docentesActuales.filter(
+          (docente) => docente.id_docente !== docenteAEliminar.id_docente,
+        ),
+      );
+
+      setMensajeExito("Docente eliminado correctamente.");
+      cerrarConfirmacionEliminar();
+    } catch (solicitudError) {
+      setErrorFormulario(
+        solicitudError.response?.data?.mensaje ||
+          "No fue posible eliminar el docente.",
+      );
+    } finally {
+      setEliminando(false);
+    }
   };
 
   const cambiarCampoFormulario = (event) => {
@@ -331,13 +378,29 @@ function Docentes() {
                         />
                       </TableCell>
                       <TableCell align="center">
-                        <IconButton
-                          color="primary"
-                          aria-label={`Editar a ${docente.nombres} ${docente.apellidos}`}
-                          onClick={() => abrirFormularioEdicion(docente)}
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "center",
+                            gap: 0.5,
+                          }}
                         >
-                          <EditOutlinedIcon />
-                        </IconButton>
+                          <IconButton
+                            color="primary"
+                            aria-label={`Editar a ${docente.nombres} ${docente.apellidos}`}
+                            onClick={() => abrirFormularioEdicion(docente)}
+                          >
+                            <EditOutlinedIcon />
+                          </IconButton>
+
+                          <IconButton
+                            color="error"
+                            aria-label={`Eliminar a ${docente.nombres} ${docente.apellidos}`}
+                            onClick={() => abrirConfirmacionEliminar(docente)}
+                          >
+                            <DeleteOutlineIcon />
+                          </IconButton>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -497,6 +560,49 @@ function Docentes() {
               : docenteSeleccionado?.id_docente
                 ? "Guardar cambios"
                 : "Crear docente"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={confirmacionEliminarAbierta}
+        onClose={eliminando ? undefined : cerrarConfirmacionEliminar}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Eliminar docente</DialogTitle>
+
+        <DialogContent>
+          {errorFormulario && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {errorFormulario}
+            </Alert>
+          )}
+
+          <Typography>
+            ¿Está seguro de eliminar al docente{" "}
+            <strong>
+              {docenteAEliminar?.nombres} {docenteAEliminar?.apellidos}
+            </strong>
+            ?
+          </Typography>
+
+          <Typography color="text.secondary" sx={{ mt: 1 }}>
+            Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+
+        <DialogActions>
+          <Button onClick={cerrarConfirmacionEliminar} disabled={eliminando}>
+            Cancelar
+          </Button>
+
+          <Button
+            color="error"
+            variant="contained"
+            onClick={confirmarEliminacionDocente}
+            disabled={eliminando}
+          >
+            {eliminando ? "Eliminando..." : "Eliminar"}
           </Button>
         </DialogActions>
       </Dialog>
