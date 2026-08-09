@@ -139,6 +139,19 @@ function Reportes() {
   const horasPorDocente = useMemo(() => {
     const mapa = new Map();
 
+    docentes.forEach((docente) => {
+      const nombre = `${docente.nombres} ${docente.apellidos}`.trim();
+
+      if (nombre && !mapa.has(docente.id_docente)) {
+        mapa.set(docente.id_docente, {
+          id: docente.id_docente,
+          nombre,
+          segundos: 0,
+          cantidad: 0,
+        });
+      }
+    });
+
     horarios.forEach((horario) => {
       const id = horario.id_docente;
       const nombre = horario.nombre_docente || "Sin docente";
@@ -159,7 +172,7 @@ function Reportes() {
         horas: registro.segundos / 3600,
       }))
       .sort((a, b) => b.horas - a.horas);
-  }, [horarios]);
+  }, [docentes, horarios]);
 
   const horariosPorPeriodo = useMemo(() => {
     const mapa = new Map();
@@ -319,7 +332,7 @@ function Reportes() {
 
                   <TableBody>
                     {horasPorDocente.slice(0, 15).map((docente) => (
-                      <TableRow key={docente.nombre} hover>
+                      <TableRow key={docente.id ?? docente.nombre} hover>
                         <TableCell>{docente.nombre}</TableCell>
                         <TableCell align="center">{docente.cantidad}</TableCell>
                         <TableCell align="center">
