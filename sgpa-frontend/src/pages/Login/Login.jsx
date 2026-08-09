@@ -234,7 +234,7 @@ function Login() {
                   }
                   label="Recordar correo"
                 />
-                <Link component={RouterLink} to="/login" underline="hover">
+                <Link component={RouterLink} to="/recuperar" underline="hover">
                   ¿Olvidaste tu contraseña?
                 </Link>
               </Stack>

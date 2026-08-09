@@ -5,7 +5,9 @@ const {
     registrarAdministradorInicial,
     iniciarSesion,
     obtenerPerfil,
-    cambiarPassword
+    cambiarPassword,
+    recuperarClave,
+    restablecerClave
 } = require("../controllers/authController");
 
 const {
@@ -24,6 +26,18 @@ const loginLimiter = rateLimit({
         ok: false,
         mensaje:
             "Demasiados intentos de inicio de sesión. Intente nuevamente en 15 minutos"
+    }
+});
+
+const recuperacionLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    standardHeaders: "draft-8",
+    legacyHeaders: false,
+    message: {
+        ok: false,
+        mensaje:
+            "Demasiados intentos de recuperación. Intente nuevamente en 15 minutos"
     }
 });
 
@@ -49,6 +63,19 @@ router.patch(
     "/cambiar-password",
     autenticarToken,
     cambiarPassword
+);
+
+// Recuperación de contraseña sin correo (validación correo + cédula)
+router.post(
+    "/recuperar-clave",
+    recuperacionLimiter,
+    recuperarClave
+);
+
+router.post(
+    "/restablecer-clave",
+    recuperacionLimiter,
+    restablecerClave
 );
 
 module.exports = router;

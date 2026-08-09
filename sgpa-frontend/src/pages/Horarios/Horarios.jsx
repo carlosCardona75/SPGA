@@ -39,6 +39,7 @@ import {
   crearHorario,
   eliminarHorario,
   exportarHorarios,
+  exportarMiHorario,
   obtenerHorarios,
   obtenerMiHorario,
 } from "../../services/horarioService";
@@ -509,18 +510,24 @@ function Horarios() {
       setExportando(true);
       setError("");
 
-      const parametros = {};
+      let blob;
 
-      if (filtros.id_docente) parametros.id_docente = filtros.id_docente;
-      if (filtros.id_grupo) parametros.id_grupo = filtros.id_grupo;
-      if (filtros.id_periodo) parametros.id_periodo = filtros.id_periodo;
+      if (admin) {
+        const parametros = {};
 
-      const blob = await exportarHorarios(parametros);
+        if (filtros.id_docente) parametros.id_docente = filtros.id_docente;
+        if (filtros.id_grupo) parametros.id_grupo = filtros.id_grupo;
+        if (filtros.id_periodo) parametros.id_periodo = filtros.id_periodo;
+
+        blob = await exportarHorarios(parametros);
+      } else {
+        blob = await exportarMiHorario();
+      }
 
       const url = window.URL.createObjectURL(blob);
       const enlace = document.createElement("a");
       enlace.href = url;
-      enlace.download = "horarios_sgpa.xlsx";
+      enlace.download = admin ? "horarios_sgpa.xlsx" : "mi_horario.xlsx";
       document.body.appendChild(enlace);
       enlace.click();
       document.body.removeChild(enlace);
@@ -642,17 +649,15 @@ function Horarios() {
             </Button>
           )}
 
-          {admin && (
-            <Button
-              variant="outlined"
-              color="primary"
-              startIcon={<FileDownloadOutlinedIcon />}
-              onClick={descargarExcel}
-              disabled={exportando}
-            >
-              {exportando ? "Exportando..." : "Exportar a Excel"}
-            </Button>
-          )}
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={<FileDownloadOutlinedIcon />}
+            onClick={descargarExcel}
+            disabled={exportando}
+          >
+            {exportando ? "Exportando..." : "Exportar a Excel"}
+          </Button>
         </Box>
       </Box>
 

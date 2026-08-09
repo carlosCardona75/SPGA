@@ -32,3 +32,10 @@ export const exportarHorarios = async (filtros = {}) => {
   });
   return data;
 };
+
+export const exportarMiHorario = async () => {
+  const { data } = await api.get("/horarios/exportar-mi-horario", {
+    responseType: "blob",
+  });
+  return data;
+};

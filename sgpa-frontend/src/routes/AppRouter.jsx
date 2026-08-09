@@ -7,6 +7,7 @@ import Docentes from "../pages/Docentes/Docentes";
 import Grupos from "../pages/Grupos/Grupos";
 import Horarios from "../pages/Horarios/Horarios";
 import Login from "../pages/Login/Login";
+import RecuperarClave from "../pages/Login/RecuperarClave";
 import Materias from "../pages/Materias/Materias";
 import Perfil from "../pages/Perfil/Perfil";
 import Periodos from "../pages/Periodos/Periodos";
@@ -20,6 +21,7 @@ function AppRouter() {
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/recuperar" element={<RecuperarClave />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />

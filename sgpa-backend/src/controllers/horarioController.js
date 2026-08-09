@@ -904,6 +904,22 @@ const eliminarHorario = async (req, res) => {
 };
 
 // Exportar horarios a un archivo Excel
+const exportarMiHorario = async (req, res) => {
+    const idDocente = req.usuario?.id_docente;
+
+    if (!idDocente) {
+        return res.status(403).json({
+            ok: false,
+            mensaje: "El usuario autenticado no está asociado a un docente"
+        });
+    }
+
+    // Se impone el docente obtenido del token.
+    // El usuario solo puede exportar su propio horario.
+    res.locals.idDocenteForzado = idDocente;
+    return exportarHorarios(req, res);
+};
+
 const exportarHorarios = async (req, res) => {
     try {
         const {
@@ -933,12 +949,15 @@ const exportarHorarios = async (req, res) => {
             }
         }
 
+        const idDocenteFiltro =
+            res.locals.idDocenteForzado ?? id_docente;
+
         const condiciones = [];
         const valores = [];
 
-        if (id_docente) {
+        if (idDocenteFiltro) {
             condiciones.push("a.id_docente = ?");
-            valores.push(id_docente);
+            valores.push(idDocenteFiltro);
         }
 
         if (id_grupo) {
@@ -1129,7 +1148,9 @@ const exportarHorarios = async (req, res) => {
 
         let nombreArchivo = "horarios_sgpa.xlsx";
 
-        if (id_docente) {
+        if (res.locals.idDocenteForzado) {
+            nombreArchivo = "mi_horario.xlsx";
+        } else if (id_docente) {
             nombreArchivo = `horario_docente_${id_docente}.xlsx`;
         } else if (id_grupo) {
             nombreArchivo = `horario_grupo_${id_grupo}.xlsx`;
@@ -1160,5 +1181,6 @@ module.exports = {
     crearHorario,
     actualizarHorario,
     eliminarHorario,
+    exportarMiHorario,
     exportarHorarios
 };

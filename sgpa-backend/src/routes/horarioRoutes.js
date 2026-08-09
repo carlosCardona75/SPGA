@@ -14,6 +14,7 @@ const {
     crearHorario,
     actualizarHorario,
     eliminarHorario,
+    exportarMiHorario,
     exportarHorarios
 } = require("../controllers/horarioController");
 
@@ -30,6 +31,13 @@ router.get(
     autenticarToken,
     autorizarRoles("DOCENTE"),
     obtenerMiHorario
+);
+
+router.get(
+    "/exportar-mi-horario",
+    autenticarToken,
+    autorizarRoles("DOCENTE"),
+    exportarMiHorario
 );
 
 router.get(

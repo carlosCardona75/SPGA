@@ -12,7 +12,6 @@ import {
   DialogTitle,
   FormControl,
   FormHelperText,
-  IconButton,
   InputAdornment,
   InputLabel,
   MenuItem,
@@ -419,14 +418,15 @@ function Usuarios() {
                     </TableCell>
 
                     <TableCell align="center">
-                      <IconButton
+                      <Button
+                        size="small"
                         color="primary"
-                        aria-label={`Restablecer contraseña de ${usuario.nombre}`}
+                        variant="outlined"
+                        startIcon={<LockResetIcon />}
                         onClick={() => abrirConfirmacionReinicio(usuario)}
-                        title="Restablecer contraseña"
                       >
-                        <LockResetIcon />
-                      </IconButton>
+                        Asignar clave temporal
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -577,7 +577,7 @@ function Usuarios() {
         fullWidth
         maxWidth="sm"
       >
-        <DialogTitle>Restablecer contraseña</DialogTitle>
+        <DialogTitle>Asignar clave temporal</DialogTitle>
 
         <DialogContent>
           {errorReinicio && (
@@ -587,14 +587,14 @@ function Usuarios() {
           )}
 
           <Typography>
-            ¿Restablecer la contraseña del usuario{" "}
+            ¿Asignar una nueva clave temporal al usuario{" "}
             <strong>{usuarioAReiniciar?.nombre}</strong> (
             {usuarioAReiniciar?.correo})?
           </Typography>
 
           <Typography sx={{ mt: 1 }}>
-            Se generará una nueva contraseña temporal y el usuario deberá
-            cambiarla al ingresar.
+            Se generará una nueva contraseña temporal que deberá entregar al
+            docente; se muestra una sola vez y deberá cambiarla al ingresar.
           </Typography>
         </DialogContent>
 
@@ -612,7 +612,7 @@ function Usuarios() {
             onClick={confirmarReinicio}
             disabled={guardandoReinicio}
           >
-            {guardandoReinicio ? "Restableciendo..." : "Restablecer"}
+            {guardandoReinicio ? "Asignando..." : "Asignar clave temporal"}
           </Button>
         </DialogActions>
       </Dialog>
