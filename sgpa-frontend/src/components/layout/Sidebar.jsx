@@ -3,6 +3,7 @@ import BarChartIcon from "@mui/icons-material/BarChart";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import GroupsIcon from "@mui/icons-material/Groups";
+import KeyIcon from "@mui/icons-material/Key";
 import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import PeopleIcon from "@mui/icons-material/People";
@@ -29,6 +30,7 @@ const opcionesAdmin = [
   { texto: "Asignaciones", icono: AssignmentIndIcon, ruta: "/asignaciones" },
   { texto: "Horarios", icono: ScheduleIcon, ruta: "/horarios" },
   { texto: "Reportes", icono: BarChartIcon, ruta: "/reportes" },
+  { texto: "Usuarios", icono: KeyIcon, ruta: "/usuarios" },
 ];
 
 const opcionesDocente = [

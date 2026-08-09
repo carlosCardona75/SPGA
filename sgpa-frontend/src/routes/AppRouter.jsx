@@ -11,6 +11,7 @@ import Materias from "../pages/Materias/Materias";
 import Perfil from "../pages/Perfil/Perfil";
 import Periodos from "../pages/Periodos/Periodos";
 import Reportes from "../pages/Reportes/Reportes";
+import Usuarios from "../pages/Usuarios/Usuarios";
 import ProtectedRoute from "./ProtectedRoute";
 
 function AppRouter() {
@@ -34,6 +35,7 @@ function AppRouter() {
           <Route path="/grupos" element={<Grupos />} />
           <Route path="/asignaciones" element={<Asignaciones />} />
           <Route path="/reportes" element={<Reportes />} />
+          <Route path="/usuarios" element={<Usuarios />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />
