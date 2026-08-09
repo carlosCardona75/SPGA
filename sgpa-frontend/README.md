@@ -19,6 +19,7 @@ El frontend consume la API del backend y permite administrar docentes, materias,
 - Exportación de horarios a Excel desde la interfaz.
 - Vista de reportes estadísticos.
 - Perfil del usuario autenticado y cambio de contraseña.
+- Administración de usuarios: creación de cuentas DOCENTE/ADMIN y restablecimiento de contraseña temporal (solo ADMIN).
 - Diseño adaptable con Material UI.
 - Menú y navegación según el rol del usuario.
 
@@ -130,7 +131,8 @@ sgpa-frontend/
 │   │   ├── Materias/
 │   │   ├── Perfil/
 │   │   ├── Periodos/
-│   │   └── Reportes/
+│   │   ├── Reportes/
+│   │   └── Usuarios/
 │   ├── routes/
 │   │   ├── AppRouter.jsx
 │   │   └── ProtectedRoute.jsx
@@ -145,7 +147,8 @@ sgpa-frontend/
 │   │   ├── horarioService.js
 │   │   ├── materiaService.js
 │   │   ├── perfilService.js
-│   │   └── periodoService.js
+│   │   ├── periodoService.js
+│   │   └── usuarioService.js
 │   ├── theme/
 │   ├── utils/
 │   │   └── rol.js
@@ -190,6 +193,23 @@ Las siguientes reglas se validan en el formulario antes de enviar la solicitud y
 ## Contraseñas temporales
 
 Cuando un usuario tiene una contraseña temporal (asignada por el administrador), el sistema lo redirige automáticamente al perfil y le exige cambiarla antes de usar los demás módulos. La contraseña solo puede cambiar con la contraseña actual correcta.
+
+## Módulo de usuarios (solo ADMIN)
+
+El módulo **Usuarios** permite al administrador:
+
+- Listar las cuentas de acceso (nombre, correo, rol, estado y si la contraseña temporal está pendiente de cambio).
+- Crear una cuenta nueva para un docente sin cuenta: se selecciona el docente y el rol (DOCENTE o ADMIN). El nombre y el correo se toman automáticamente del docente, y el sistema genera una contraseña temporal con el formato `Sgpa7-XXXXXXXX` que se muestra una sola vez.
+- Restablecer la contraseña de un usuario existente: se genera una nueva contraseña temporal y el usuario deberá cambiarla al ingresar.
+
+### Restricciones al crear cuentas
+
+- Solo se aceptan correos institucionales que terminen en `@areandina.edu.co`. Los docentes con correos genéricos (por ejemplo `@sgpa.local`) no pueden recibir cuenta hasta que el administrador actualice su correo en el módulo Docentes.
+- Un docente no puede tener más de una cuenta.
+- No se crea una cuenta DOCENTE para un docente inactivo: primero debe reactivarse en el módulo Docentes.
+- Un docente inactivo no puede iniciar sesión, aunque tenga cuenta.
+
+La interfaz muestra avisos cuando el docente seleccionado no cumple alguna de estas condiciones.
 
 ## Seguridad
 

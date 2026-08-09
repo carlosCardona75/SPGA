@@ -232,6 +232,72 @@ id_periodo=1      -> horarios_periodo_1.xlsx
 
 > El backend consulta los horarios usando filtros opcionales y parámetros preparados. Después convierte los registros a una hoja de Excel, ajusta el ancho de sus columnas y genera el archivo en memoria, sin dejar archivos temporales en el servidor. El nombre de la descarga identifica el filtro utilizado. Si la consulta no tiene resultados, responde 404 en lugar de generar una hoja vacía; y si un identificador tiene un formato inválido, responde 400 antes de consultar MySQL.
 
+## Autenticación y prueba de escritorio (ingreso al sistema)
+
+### Administradores
+
+Los administradores ingresan con su correo institucional y la contraseña que definieron. El sistema no permite volver a registrar el administrador inicial cuando ya existe un usuario.
+
+```text
+POST /api/auth/login
+{ "correo": "alasso3@areandina.edu.co", "password": "..." }
+```
+
+Respuesta: `200 OK` con el token JWT y el perfil del usuario (`rol: ADMIN`).
+
+### Docentes y contraseñas temporales
+
+Los docentes **no eligen su contraseña**: el administrador crea la cuenta en el módulo **Usuarios** y el sistema genera automáticamente una contraseña temporal con el formato `Sgpa7-XXXXXXXX` (16 caracteres con mayúscula, minúscula y número). Esta contraseña se muestra **una sola vez** en pantalla y el administrador debe entregarla al docente.
+
+Al ingresar con una contraseña temporal, el sistema:
+
+1. Autentica al docente (`200 OK`, `rol: DOCENTE`, `debe_cambiar_password: 1`).
+2. Redirige al perfil y exige el cambio de contraseña.
+3. Mientras `debe_cambiar_password = 1`, **todos** los demás endpoints responden `403` con el mensaje "Debe cambiar la contraseña temporal antes de continuar".
+4. Después del cambio (`PATCH /api/auth/cambiar-password`) el docente ya puede usar su horario y consultar sus módulos de lectura.
+
+Si el docente olvida la contraseña, el administrador usa `PATCH /api/usuarios/:id/restablecer-password`; el sistema genera una nueva contraseña temporal y vuelve a exigir el cambio.
+
+### Restricciones para crear cuentas (módulo Usuarios)
+
+- Solo se aceptan correos institucionales que terminen en `@areandina.edu.co`. Un docente con correo genérico (por ejemplo `andres.bayer@sgpa.local`) **no puede recibir cuenta** hasta que el administrador actualice su correo real en el módulo Docentes.
+- Un docente no puede tener dos cuentas.
+- No se crea una cuenta DOCENTE para un docente inactivo (`estado = 0`): la creación responde `409`.
+- Un docente inactivo no puede iniciar sesión, aunque ya tenga cuenta: `403 "El usuario se encuentra inactivo"`.
+
+### Ejemplos de prueba de escritorio
+
+| Caso | Resultado esperado |
+|---|---|
+| Ingreso con credenciales de un ADMIN | `200 OK`, menú completo |
+| Ingreso de un docente con contraseña temporal | `200 OK` y redirección al perfil; todo bloqueado hasta cambiarla |
+| Ingreso de un docente inactivo | `403 "El usuario se encuentra inactivo"` |
+| Crear cuenta para docente con correo `@sgpa.local` | `400 "El docente no tiene un correo institucional autorizado"` |
+| Crear cuenta DOCENTE para docente inactivo | `409` (debe reactivarse primero en Docentes) |
+
+## Pruebas funcionales ejecutadas (frontend + backend)
+
+Resultados obtenidos el día del cierre del frontend:
+
+| Prueba | Resultado |
+|---|---|
+| Login ADMIN `alasso3` y `lobando13` | `200 OK` |
+| Lectura de aulas, períodos, asignaciones, horarios, docentes, grupos y materias | `200 OK` |
+| Aula con código duplicado | `409` |
+| Período con `fecha_final` anterior a `fecha_inicio` | `400` |
+| Período con nombre duplicado | `409` |
+| Asignación duplicada (docente+grupo+período) | `409` |
+| Horario duplicado o cruzado | `409` |
+| Horario que supera `max_horas` (35 h + 6 h = 41 h > 40 h) | `409 "El docente superaría el máximo permitido de 40 horas"` |
+| Filtro `estado` inválido | `400` |
+| Cambio de contraseña con contraseña actual incorrecta | `401` |
+| Exportación a Excel | `200 OK`, archivo de 19 940 bytes |
+| Flujo DOCENTE: login temporal → cambio de contraseña → `mi-horario` y `mi-perfil` | Correcto |
+| DOCENTE intenta crear aula o exportar horarios | `403` |
+| Crear cuenta y restablecer contraseña (módulo Usuarios) | `201` y `200`, contraseña temporal generada |
+
+Los registros temporales creados durante estas pruebas (aula, horario, docente y usuario de prueba) fueron eliminados y se verificó que la base quedó con los datos originales.
+
 ## Lista de control al finalizar una sesión
 
 - [ ] Todos los valores temporales fueron restaurados.
