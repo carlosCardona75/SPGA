@@ -237,6 +237,11 @@ function Reportes() {
       .sort((a, b) => orden.indexOf(a.dia) - orden.indexOf(b.dia));
   }, [horarios]);
 
+  const maxSegundosDocente = Math.max(
+    0,
+    ...horasPorDocente.map((docente) => docente.segundos),
+  );
+
   return (
     <MainLayout>
       <Stack spacing={0.5} mb={3.5}>
@@ -320,8 +325,8 @@ function Reportes() {
                 </Typography>
               </Box>
 
-              <TableContainer>
-                <Table size="small">
+              <TableContainer sx={{ maxHeight: 440 }}>
+                <Table size="small" stickyHeader>
                   <TableHead>
                     <TableRow>
                       <TableCell>Docente</TableCell>
@@ -331,12 +336,50 @@ function Reportes() {
                   </TableHead>
 
                   <TableBody>
-                    {horasPorDocente.slice(0, 15).map((docente) => (
+                    {horasPorDocente.map((docente) => (
                       <TableRow key={docente.id ?? docente.nombre} hover>
                         <TableCell>{docente.nombre}</TableCell>
                         <TableCell align="center">{docente.cantidad}</TableCell>
-                        <TableCell align="center">
-                          {formatearHoras(docente.segundos)}
+                        <TableCell align="center" sx={{ minWidth: 110 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "flex-end",
+                              gap: 1.25,
+                            }}
+                          >
+                            <Typography variant="body2">
+                              {formatearHoras(docente.segundos)}
+                            </Typography>
+
+                            <Box
+                              sx={{
+                                width: 90,
+                                height: 8,
+                                borderRadius: 1,
+                                bgcolor: "action.hover",
+                                overflow: "hidden",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  width: `${
+                                    maxSegundosDocente > 0
+                                      ? (docente.segundos /
+                                          maxSegundosDocente) *
+                                        100
+                                      : 0
+                                  }%`,
+                                  height: "100%",
+                                  borderRadius: 1,
+                                  bgcolor: "primary.light",
+                                  transition: "width 300ms ease",
+                                }}
+                              />
+                            </Box>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     ))}
