@@ -1,8 +1,10 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { obtenerUsuario } from "../utils/rol";
 
-function ProtectedRoute() {
+function ProtectedRoute({ rol }) {
   const location = useLocation();
   const token = sessionStorage.getItem("sgpa_token");
+  const usuario = obtenerUsuario();
 
   if (!token) {
     return (
@@ -12,6 +14,10 @@ function ProtectedRoute() {
         state={{ desde: location.pathname }}
       />
     );
+  }
+
+  if (rol && usuario?.rol !== rol) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Outlet />;

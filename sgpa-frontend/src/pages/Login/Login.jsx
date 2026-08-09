@@ -58,6 +58,11 @@ function Login() {
         localStorage.removeItem("sgpa_correo_recordado");
       }
 
+      if (respuesta.usuario?.debe_cambiar_password === 1) {
+        navigate("/perfil", { replace: true });
+        return;
+      }
+
       navigate("/dashboard", { replace: true });
     } catch (solicitudError) {
       const mensaje =
