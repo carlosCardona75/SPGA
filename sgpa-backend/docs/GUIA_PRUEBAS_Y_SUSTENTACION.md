@@ -232,6 +232,34 @@ id_periodo=1      -> horarios_periodo_1.xlsx
 
 > El backend consulta los horarios usando filtros opcionales y parámetros preparados. Después convierte los registros a una hoja de Excel, ajusta el ancho de sus columnas y genera el archivo en memoria, sin dejar archivos temporales en el servidor. El nombre de la descarga identifica el filtro utilizado. Si la consulta no tiene resultados, responde 404 en lugar de generar una hoja vacía; y si un identificador tiene un formato inválido, responde 400 antes de consultar MySQL.
 
+## Importación de un plan de estudios (plantilla Excel)
+
+El cliente envió el nuevo plan de estudios de Fisioterapia (`nuevo ecap.pdf`, formato EAC-AP-I01-F01, proceso de ampliación de cupos). Para no cargar las materias una por una, el backend incluye una plantilla Excel reutilizable y un script de importación.
+
+### Flujo
+
+1. `node scripts/generarPlantillaPlanEstudios.js` genera `plantillas/PLANTILLA_PLAN_ESTUDIOS.xlsx`.
+2. En la hoja `CONFIG` se indican `PROGRAMA`, `PERIODO` (p. ej. `202670`), `FECHA INICIO` y `FECHA FINAL`.
+3. En la hoja `PENSUM ACADÉMICO` se pega el pensum. El campo `COD MATERIA` es opcional: si se deja vacío, el script lo genera (`FIS001`, ...).
+4. `node scripts/importarPlanEstudios.js` crea el período (si no existe), las materias y un grupo inicial por materia (código `semestre + 01`, p. ej. `101`), todo en una sola transacción.
+
+### Resultado comprobado con el nuevo plan de Fisioterapia
+
+| Concepto | Resultado |
+|---|---|
+| Asignaturas leídas desde el PDF/plantilla | 65 |
+| Período creado | `202670` (15/01/2027 – 30/06/2027) |
+| Materias nuevas creadas | 54 (códigos `FIS001` a `FIS065`) |
+| Materias omitidas por nombre ya existente | 11 (reutilizadas del plan anterior) |
+| Grupos iniciales creados | 54 (códigos `101` a `801`, uno por semestre) |
+| Transacción | Confirmada (rollback automático ante cualquier error) |
+
+Las 11 materias omitidas son las que ya estaban registradas en el plan anterior y se reutilizan sin duplicar: FISIOLOGÍA DEL EJERCICIO, PRÁCTICA FISIOTERAPÉUTICA II y III, BIOESTADÍSTICA, BIOFÍSICA, EPIDEMIOLOGÍA, INVESTIGACIÓN I y II, BIOÉTICA, ELECTIVA I y II.
+
+### Guion breve para explicar la importación
+
+> El cliente entregó el nuevo plan de estudios en PDF. Como el pensum está estructurado por área de formación, período académico, tipología, créditos y horas, lo convertimos en una plantilla Excel reutilizable con una hoja de configuración y una hoja de pensum. El script lee la plantilla, crea el período académico si no existe, inserta las materias nuevas y genera un grupo inicial por semestre. Si una materia ya existe por código o por nombre, la omite y lo reporta para evitar duplicados. Todo se ejecuta dentro de una transacción: si algo falla, no se confirma ningún cambio.
+
 ## Autenticación y prueba de escritorio (ingreso al sistema)
 
 ### Administradores

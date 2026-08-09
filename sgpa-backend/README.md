@@ -167,6 +167,7 @@ sgpa-backend/
 ├── database/
 │   └── migrations/
 ├── docs/
+├── plantillas/
 ├── scripts/
 ├── src/
 │   ├── config/
@@ -208,6 +209,7 @@ La aplicación utiliza una arquitectura organizada por responsabilidades:
 - `middlewares`: autenticación y autorización.
 - `database/migrations`: cambios controlados en la estructura de la base de datos.
 - `docs`: documentación de pruebas y sustentación.
+- `plantillas`: plantillas Excel reutilizables para importar planes de estudio.
 - `scripts`: procesos auxiliares de importación y mantenimiento.
 
 ## Roles y permisos
@@ -408,8 +410,28 @@ La carpeta `scripts` contiene herramientas utilizadas durante la preparación y 
 - `importarHorario.js`: importación de información de horarios.
 - `revisarHorario.js`: revisión de los datos importados.
 - `validarHorario.js`: validación previa de la estructura y contenido.
+- `datosPlanFisioterapia2026.js`: datos del nuevo plan de estudios de Fisioterapia (65 asignaturas, 160 créditos).
+- `generarPlantillaPlanEstudios.js`: genera la plantilla Excel `plantillas/PLANTILLA_PLAN_ESTUDIOS.xlsx`.
+- `importarPlanEstudios.js`: importa un plan de estudios desde la plantilla (período, materias y grupos).
 
 Estos scripts son procesos administrativos y deben ejecutarse únicamente sobre archivos previamente revisados y con una copia de seguridad disponible.
+
+### Importación de un plan de estudios (plantilla Excel)
+
+El flujo permite cargar el pensum de un programa sin capturar los datos uno a uno en el sistema:
+
+1. Ejecutar `node scripts/generarPlantillaPlanEstudios.js` para generar (o actualizar) `plantillas/PLANTILLA_PLAN_ESTUDIOS.xlsx`. La plantilla incluye de ejemplo el nuevo plan de Fisioterapia 2026.
+2. En la hoja `CONFIG` ajustar: `PROGRAMA`, `PERIODO` (p. ej. `202670`), `FECHA INICIO` y `FECHA FINAL`.
+3. En la hoja `PENSUM ACADÉMICO` pegar o reemplazar las filas con el pensum del programa. Si se deja vacío `COD MATERIA`, el código se genera automáticamente (`FIS001`, `FIS002`, ...).
+4. Ejecutar `node scripts/importarPlanEstudios.js`.
+
+El script crea, en una sola transacción:
+
+- El período académico indicado en `CONFIG` (si no existe).
+- Las materias nuevas (las que ya existen por código o por nombre se omiten y se reportan).
+- Un grupo inicial por materia con código `semestre + 01` (por ejemplo `101`, `201`, ..., `801`).
+
+Las materias nuevas quedan listas para asignarse a docentes desde el módulo de asignaciones y para programarse en horarios.
 
 ## Pruebas y sustentación
 
