@@ -413,6 +413,7 @@ La carpeta `scripts` contiene herramientas utilizadas durante la preparación y 
 - `datosPlanFisioterapia2026.js`: datos del nuevo plan de estudios de Fisioterapia (65 asignaturas, 160 créditos).
 - `generarPlantillaPlanEstudios.js`: genera la plantilla Excel `plantillas/PLANTILLA_PLAN_ESTUDIOS.xlsx`.
 - `importarPlanEstudios.js`: importa un plan de estudios desde la plantilla (período, materias y grupos).
+- `generarListadoPlan2026.js`: genera el Excel `plantillas/PLAN_FISIOTERAPIA_2026_LISTADO_MATERIAS.xlsx` con las 65 materias del plan 2026 marcando su origen (nueva o reutilizada del plan 202660).
 
 Estos scripts son procesos administrativos y deben ejecutarse únicamente sobre archivos previamente revisados y con una copia de seguridad disponible.
 

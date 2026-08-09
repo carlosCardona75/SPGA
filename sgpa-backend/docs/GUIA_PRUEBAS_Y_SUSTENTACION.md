@@ -256,6 +256,14 @@ El cliente envió el nuevo plan de estudios de Fisioterapia (`nuevo ecap.pdf`, f
 
 Las 11 materias omitidas son las que ya estaban registradas en el plan anterior y se reutilizan sin duplicar: FISIOLOGÍA DEL EJERCICIO, PRÁCTICA FISIOTERAPÉUTICA II y III, BIOESTADÍSTICA, BIOFÍSICA, EPIDEMIOLOGÍA, INVESTIGACIÓN I y II, BIOÉTICA, ELECTIVA I y II.
 
+### Listado de materias del plan 2026 (con origen)
+
+Para mostrar las 65 materias del nuevo plan diferenciando las nuevas de las reutilizadas se genera un Excel con `node scripts/generarListadoPlan2026.js`:
+
+`plantillas/PLAN_FISIOTERAPIA_2026_LISTADO_MATERIAS.xlsx`
+
+Las columnas incluyen área de formación, período académico, semestre, código, nombre, tipología, créditos, origen y código existente. El script consulta la base de datos y marca cada fila como `NUEVA (plan 2026)` o `REUTILIZADA (plan 202660)`, indicando en esta última el código del plan anterior. Resultado comprobado: 54 nuevas y 11 reutilizadas.
+
 ### Guion breve para explicar la importación
 
 > El cliente entregó el nuevo plan de estudios en PDF. Como el pensum está estructurado por área de formación, período académico, tipología, créditos y horas, lo convertimos en una plantilla Excel reutilizable con una hoja de configuración y una hoja de pensum. El script lee la plantilla, crea el período académico si no existe, inserta las materias nuevas y genera un grupo inicial por semestre. Si una materia ya existe por código o por nombre, la omite y lo reporta para evitar duplicados. Todo se ejecuta dentro de una transacción: si algo falla, no se confirma ningún cambio.
