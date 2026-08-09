@@ -21,7 +21,7 @@ const opciones = [
   { texto: "Dashboard", icono: DashboardIcon, ruta: "/dashboard" },
   { texto: "Docentes", icono: PeopleIcon, ruta: "/docentes" },
   { texto: "Materias", icono: MenuBookIcon, ruta: "/materias" },
-  { texto: "Grupos", icono: GroupsIcon },
+  { texto: "Grupos", icono: GroupsIcon, ruta: "/grupos" },
   { texto: "Aulas", icono: MeetingRoomIcon },
   { texto: "Períodos académicos", icono: CalendarMonthIcon },
   { texto: "Asignaciones", icono: AssignmentIndIcon },

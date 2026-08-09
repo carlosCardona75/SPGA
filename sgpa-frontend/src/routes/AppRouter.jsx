@@ -4,6 +4,7 @@ import Dashboard from "../pages/Dashboard/Dashboard";
 import Docentes from "../pages/Docentes/Docentes";
 import Login from "../pages/Login/Login";
 import Materias from "../pages/Materias/Materias";
+import Grupos from "../pages/Grupos/Grupos";
 import ProtectedRoute from "./ProtectedRoute";
 
 function AppRouter() {
@@ -16,6 +17,7 @@ function AppRouter() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/docentes" element={<Docentes />} />
           <Route path="/materias" element={<Materias />} />
+          <Route path="/grupos" element={<Grupos />} />
         </Route>
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
