@@ -4,6 +4,11 @@ const jwt = require("jsonwebtoken");
 
 const db = require("../config/database");
 
+// Los tokens de recuperación se almacenan únicamente como hash SHA-256.
+// El token original solo lo recibe el cliente en la respuesta del paso 1.
+const hashToken = (token) =>
+    crypto.createHash("sha256").update(String(token)).digest("hex");
+
 // Registrar exclusivamente el primer administrador del sistema
 const registrarAdministradorInicial = async (req, res) => {
     try {
@@ -432,7 +437,7 @@ const recuperarClave = async (req, res) => {
                 expira_en
             )
             VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 30 MINUTE))`,
-            [usuario.id_usuario, token]
+            [usuario.id_usuario, hashToken(token)]
         );
 
         return res.status(200).json({
@@ -503,7 +508,7 @@ const restablecerClave = async (req, res) => {
                 ON r.id_usuario = u.id_usuario
             WHERE r.token = ?
             LIMIT 1`,
-            [String(token).trim()]
+            [hashToken(String(token).trim())]
         );
 
         if (tokens.length === 0) {

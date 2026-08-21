@@ -262,7 +262,7 @@ Encabezado requerido: Authorization: Bearer TOKEN_JWT
 
 El inicio de sesión permite cinco intentos fallidos por dirección IP dentro de un período de 15 minutos. El sexto intento devuelve `429 Too Many Requests`. La recuperación de contraseña aplica la misma política: cinco solicitudes cada 15 minutos por dirección IP.
 
-La recuperación de contraseña funciona sin envío de correos electrónicos: `recuperar-clave` comprueba que el correo pertenezca a una cuenta activa y que la cédula corresponda al docente asociado; si ambos datos coinciden, se genera un token interno de 30 minutos con el que `restablecer-clave` define la nueva contraseña. El servicio no revela si la cuenta o la cédula existen cuando los datos no coinciden.
+La recuperación de contraseña funciona sin envío de correos electrónicos: `recuperar-clave` comprueba que el correo pertenezca a una cuenta activa y que la cédula corresponda al docente asociado; si ambos datos coinciden, se genera un token interno de 30 minutos con el que `restablecer-clave` define la nueva contraseña. El token se almacena en la base de datos únicamente como hash SHA-256, de modo que el valor original solo lo recibe el cliente en la respuesta del primer paso y un acceso a la base de datos no permite utilizar tokens activos. El servicio no revela si la cuenta o la cédula existen cuando los datos no coinciden.
 
 ### Usuarios
 
