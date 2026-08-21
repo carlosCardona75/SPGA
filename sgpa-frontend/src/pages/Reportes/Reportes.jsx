@@ -20,8 +20,11 @@ import ApartmentIcon from "@mui/icons-material/Apartment";
 import MeetingRoomIcon from "@mui/icons-material/MeetingRoom";
 import PeopleIcon from "@mui/icons-material/People";
 import ScheduleIcon from "@mui/icons-material/Schedule";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
+import Button from "@mui/material/Button";
 
 import MainLayout from "../../layouts/MainLayout";
+import { exportarReportes } from "../../services/reporteService";
 import { obtenerHorarios } from "../../services/horarioService";
 import { obtenerDocentes } from "../../services/docenteService";
 import { obtenerAulas } from "../../services/aulaService";
@@ -88,6 +91,7 @@ function Reportes() {
   const [periodos, setPeriodos] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [exportando, setExportando] = useState(false);
 
   useEffect(() => {
     const cargarDatos = async () => {
@@ -120,6 +124,31 @@ function Reportes() {
 
     cargarDatos();
   }, []);
+
+  const descargarExcel = async () => {
+    try {
+      setExportando(true);
+      setError("");
+
+      const blob = await exportarReportes();
+
+      const url = window.URL.createObjectURL(blob);
+      const enlace = document.createElement("a");
+      enlace.href = url;
+      enlace.download = "reporte_sgpa.xlsx";
+      document.body.appendChild(enlace);
+      enlace.click();
+      document.body.removeChild(enlace);
+      window.URL.revokeObjectURL(url);
+    } catch (solicitudError) {
+      setError(
+        solicitudError.response?.data?.mensaje ||
+          "No fue posible exportar los reportes.",
+      );
+    } finally {
+      setExportando(false);
+    }
+  };
 
   const resumen = useMemo(() => {
     const sinAula = horarios.filter(
@@ -244,14 +273,32 @@ function Reportes() {
 
   return (
     <MainLayout>
-      <Stack spacing={0.5} mb={3.5}>
-        <Typography variant="h4" component="h1" fontWeight={700}>
-          Reportes
-        </Typography>
+      <Stack
+        spacing={0.5}
+        mb={3.5}
+        direction={{ xs: "column", sm: "row" }}
+        justifyContent="space-between"
+        alignItems={{ xs: "stretch", sm: "center" }}
+      >
+        <Box>
+          <Typography variant="h4" component="h1" fontWeight={700}>
+            Reportes
+          </Typography>
 
-        <Typography color="text.secondary">
-          Resumen estadístico de la programación académica.
-        </Typography>
+          <Typography color="text.secondary">
+            Resumen estadístico de la programación académica.
+          </Typography>
+        </Box>
+
+        <Button
+          variant="outlined"
+          color="primary"
+          startIcon={<FileDownloadOutlinedIcon />}
+          onClick={descargarExcel}
+          disabled={exportando}
+        >
+          {exportando ? "Exportando..." : "Exportar a Excel"}
+        </Button>
       </Stack>
 
       {cargando && (

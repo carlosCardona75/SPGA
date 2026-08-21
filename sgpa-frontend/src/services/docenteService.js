@@ -19,3 +19,10 @@ export const eliminarDocente = async (idDocente) => {
   const { data } = await api.delete(`/docentes/${idDocente}`);
   return data;
 };
+
+export const exportarDocentes = async () => {
+  const { data } = await api.get("/docentes/exportar", {
+    responseType: "blob",
+  });
+  return data;
+};

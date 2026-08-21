@@ -12,6 +12,7 @@ const aulaRoutes = require("./routes/aulaRoutes");
 const periodoRoutes = require("./routes/periodoRoutes");
 const asignacionRoutes = require("./routes/asignacionRoutes");
 const horarioRoutes = require("./routes/horarioRoutes");
+const reporteRoutes = require("./routes/reporteRoutes");
 const authRoutes = require("./routes/authRoutes");
 const usuarioRoutes = require("./routes/usuarioRoutes");
 
@@ -60,6 +61,7 @@ app.use("/api/aulas", aulaRoutes);
 app.use("/api/periodos", periodoRoutes);
 app.use("/api/asignaciones", asignacionRoutes);
 app.use("/api/horarios", horarioRoutes);
+app.use("/api/reportes", reporteRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/usuarios", usuarioRoutes);
 

@@ -13,7 +13,8 @@ const {
     obtenerDocentePorId,
     crearDocente,
     actualizarDocente,
-    eliminarDocente
+    eliminarDocente,
+    exportarDocentes
 } = require("../controllers/docenteController");
 
 router.get(
@@ -28,6 +29,13 @@ router.get(
     autenticarToken,
     autorizarRoles("DOCENTE"),
     obtenerMiPerfil
+);
+
+router.get(
+    "/exportar",
+    autenticarToken,
+    autorizarRoles("ADMIN"),
+    exportarDocentes
 );
 
 router.get(

@@ -1,3 +1,5 @@
+const ExcelJS = require("exceljs");
+
 const db = require("../config/database");
 
 // Obtener todos los docentes
@@ -327,11 +329,123 @@ const eliminarDocente = async (req, res) => {
     }
 };
 
+// Exportar docentes a un archivo Excel
+const exportarDocentes = async (req, res) => {
+    try {
+        const [docentes] = await db.query(`
+            SELECT
+                cedula,
+                id_banner,
+                nombres,
+                apellidos,
+                correo,
+                telefono,
+                max_horas,
+                CASE
+                    WHEN estado = 1 THEN 'ACTIVO'
+                    ELSE 'INACTIVO'
+                END AS estado
+            FROM docente
+            ORDER BY nombres, apellidos
+        `);
+
+        if (docentes.length === 0) {
+            return res.status(404).json({
+                ok: false,
+                mensaje: "No hay docentes para exportar"
+            });
+        }
+
+        const libro = new ExcelJS.Workbook();
+        libro.creator = "SGPA";
+        libro.created = new Date();
+
+        const hoja = libro.addWorksheet("Docentes");
+
+        hoja.columns = [
+            { header: "cedula", key: "cedula", width: 16 },
+            { header: "id_banner", key: "id_banner", width: 14 },
+            { header: "nombres", key: "nombres", width: 28 },
+            { header: "apellidos", key: "apellidos", width: 28 },
+            { header: "correo", key: "correo", width: 38 },
+            { header: "telefono", key: "telefono", width: 16 },
+            { header: "max_horas", key: "max_horas", width: 12 },
+            { header: "estado", key: "estado", width: 12 }
+        ];
+
+        hoja.addRows(docentes);
+
+        const encabezado = hoja.getRow(1);
+
+        encabezado.font = {
+            bold: true,
+            color: {
+                argb: "FFFFFFFF"
+            }
+        };
+
+        encabezado.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: {
+                argb: "FF1F4E78"
+            }
+        };
+
+        encabezado.alignment = {
+            vertical: "middle",
+            horizontal: "center"
+        };
+
+        hoja.views = [
+            {
+                state: "frozen",
+                ySplit: 1
+            }
+        ];
+
+        hoja.autoFilter = {
+            from: {
+                row: 1,
+                column: 1
+            },
+            to: {
+                row: 1,
+                column: 8
+            }
+        };
+
+        const archivoExcel = Buffer.from(
+            await libro.xlsx.writeBuffer()
+        );
+
+        res.setHeader(
+            "Content-Type",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        );
+
+        res.setHeader(
+            "Content-Disposition",
+            'attachment; filename="docentes_sgpa.xlsx"'
+        );
+
+        return res.status(200).send(archivoExcel);
+    } catch (error) {
+        console.error("Error al exportar docentes:", error);
+
+        return res.status(500).json({
+            ok: false,
+            mensaje: "Error al exportar los docentes"
+        });
+    }
+};
+
 module.exports = {
     obtenerDocentes,
     obtenerMiPerfil,
     obtenerDocentePorId,
     crearDocente,
     actualizarDocente,
-    eliminarDocente
+    eliminarDocente,
+    exportarDocentes
 };

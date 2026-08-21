@@ -22,3 +22,11 @@ export const eliminarAsignacion = async (idAsignacion) => {
   const { data } = await api.delete(`/asignaciones/${idAsignacion}`);
   return data;
 };
+
+export const exportarAsignaciones = async (filtros = {}) => {
+  const { data } = await api.get("/asignaciones/exportar", {
+    params: filtros,
+    responseType: "blob",
+  });
+  return data;
+};

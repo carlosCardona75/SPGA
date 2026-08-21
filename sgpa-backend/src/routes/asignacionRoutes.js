@@ -13,7 +13,8 @@ const {
     obtenerAsignacionPorId,
     crearAsignacion,
     actualizarAsignacion,
-    eliminarAsignacion
+    eliminarAsignacion,
+    exportarAsignaciones
 } = require("../controllers/asignacionController");
 
 // Obtener todas las asignaciones
@@ -29,6 +30,13 @@ router.get(
     autenticarToken,
     autorizarRoles("DOCENTE"),
     obtenerMisAsignaciones
+);
+
+router.get(
+    "/exportar",
+    autenticarToken,
+    autorizarRoles("ADMIN"),
+    exportarAsignaciones
 );
 
 router.get(

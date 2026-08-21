@@ -1,3 +1,5 @@
+const ExcelJS = require("exceljs");
+
 const db = require("../config/database");
 
 
@@ -454,11 +456,200 @@ const eliminarAsignacion = async (req, res) => {
         });
     }
 };
+// Exportar asignaciones a un archivo Excel
+const exportarAsignaciones = async (req, res) => {
+    try {
+        const {
+            id_docente,
+            id_grupo,
+            id_periodo
+        } = req.query;
+
+        const filtrosId = {
+            id_docente,
+            id_grupo,
+            id_periodo
+        };
+
+        for (const [campo, valor] of Object.entries(filtrosId)) {
+            if (
+                valor !== undefined &&
+                (
+                    !/^\d+$/.test(String(valor)) ||
+                    Number(valor) <= 0
+                )
+            ) {
+                return res.status(400).json({
+                    ok: false,
+                    mensaje: `${campo} debe ser un número entero positivo`
+                });
+            }
+        }
+
+        const condiciones = [];
+        const valores = [];
+
+        if (id_docente) {
+            condiciones.push("a.id_docente = ?");
+            valores.push(id_docente);
+        }
+
+        if (id_grupo) {
+            condiciones.push("a.id_grupo = ?");
+            valores.push(id_grupo);
+        }
+
+        if (id_periodo) {
+            condiciones.push("a.id_periodo = ?");
+            valores.push(id_periodo);
+        }
+
+        const where =
+            condiciones.length > 0
+                ? `WHERE ${condiciones.join(" AND ")}`
+                : "";
+
+        const [asignaciones] = await db.query(`
+            SELECT
+                d.cedula AS documento_docente,
+                CONCAT(d.nombres, ' ', d.apellidos) AS docente,
+                m.codigo AS codigo_materia,
+                m.nombre_materia AS materia,
+                g.cod_grupo AS grupo,
+                g.descripcion AS descripcion_grupo,
+                p.nombre_periodo AS periodo,
+                p.fecha_inicio,
+                p.fecha_final,
+                CASE
+                    WHEN a.estado = 1 THEN 'ACTIVO'
+                    ELSE 'INACTIVO'
+                END AS estado
+            FROM asignacion a
+            INNER JOIN docente d
+                ON a.id_docente = d.id_docente
+            INNER JOIN grupo g
+                ON a.id_grupo = g.id_grupo
+            INNER JOIN materia m
+                ON g.id_materia = m.id_materia
+            INNER JOIN periodo_academico p
+                ON a.id_periodo = p.id_periodo
+            ${where}
+            ORDER BY
+                d.apellidos,
+                d.nombres,
+                p.nombre_periodo,
+                m.nombre_materia
+        `, valores);
+
+        if (asignaciones.length === 0) {
+            return res.status(404).json({
+                ok: false,
+                mensaje: "No hay asignaciones para exportar"
+            });
+        }
+
+        const libro = new ExcelJS.Workbook();
+        libro.creator = "SGPA";
+        libro.created = new Date();
+
+        const hoja = libro.addWorksheet("Asignaciones");
+
+        hoja.columns = [
+            { header: "documento_docente", key: "documento_docente", width: 20 },
+            { header: "docente", key: "docente", width: 35 },
+            { header: "codigo_materia", key: "codigo_materia", width: 18 },
+            { header: "materia", key: "materia", width: 35 },
+            { header: "grupo", key: "grupo", width: 12 },
+            { header: "descripcion_grupo", key: "descripcion_grupo", width: 40 },
+            { header: "periodo", key: "periodo", width: 15 },
+            { header: "fecha_inicio", key: "fecha_inicio", width: 14 },
+            { header: "fecha_final", key: "fecha_final", width: 14 },
+            { header: "estado", key: "estado", width: 12 }
+        ];
+
+        hoja.addRows(asignaciones);
+
+        const encabezado = hoja.getRow(1);
+
+        encabezado.font = {
+            bold: true,
+            color: {
+                argb: "FFFFFFFF"
+            }
+        };
+
+        encabezado.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: {
+                argb: "FF1F4E78"
+            }
+        };
+
+        encabezado.alignment = {
+            vertical: "middle",
+            horizontal: "center"
+        };
+
+        hoja.views = [
+            {
+                state: "frozen",
+                ySplit: 1
+            }
+        ];
+
+        hoja.autoFilter = {
+            from: {
+                row: 1,
+                column: 1
+            },
+            to: {
+                row: 1,
+                column: 10
+            }
+        };
+
+        const archivoExcel = Buffer.from(
+            await libro.xlsx.writeBuffer()
+        );
+
+        res.setHeader(
+            "Content-Type",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        );
+
+        let nombreArchivo = "asignaciones_sgpa.xlsx";
+
+        if (id_docente) {
+            nombreArchivo = `asignaciones_docente_${id_docente}.xlsx`;
+        } else if (id_grupo) {
+            nombreArchivo = `asignaciones_grupo_${id_grupo}.xlsx`;
+        } else if (id_periodo) {
+            nombreArchivo = `asignaciones_periodo_${id_periodo}.xlsx`;
+        }
+
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${nombreArchivo}"`
+        );
+
+        return res.status(200).send(archivoExcel);
+    } catch (error) {
+        console.error("Error al exportar asignaciones:", error);
+
+        return res.status(500).json({
+            ok: false,
+            mensaje: "Error al exportar las asignaciones"
+        });
+    }
+};
+
 module.exports = {
     obtenerAsignaciones,
     obtenerMisAsignaciones,
     obtenerAsignacionPorId,
     crearAsignacion,
     actualizarAsignacion,
-    eliminarAsignacion
+    eliminarAsignacion,
+    exportarAsignaciones
 };

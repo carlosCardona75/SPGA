@@ -31,12 +31,14 @@ import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 
 import MainLayout from "../../layouts/MainLayout";
 import {
   actualizarAsignacion,
   crearAsignacion,
   eliminarAsignacion,
+  exportarAsignaciones,
   obtenerAsignaciones,
 } from "../../services/asignacionService";
 import { obtenerDocentes } from "../../services/docenteService";
@@ -69,6 +71,7 @@ function Asignaciones() {
   const [asignacionAEliminar, setAsignacionAEliminar] = useState(null);
   const [dialogoEliminarAbierto, setDialogoEliminarAbierto] = useState(false);
   const [errorEliminar, setErrorEliminar] = useState("");
+  const [exportando, setExportando] = useState(false);
 
   useEffect(() => {
     const cargarAsignaciones = async () => {
@@ -97,6 +100,33 @@ function Asignaciones() {
 
     cargarAsignaciones();
   }, []);
+
+  const descargarExcel = async () => {
+    try {
+      setExportando(true);
+      setError("");
+
+      const blob = await exportarAsignaciones();
+
+      const url = window.URL.createObjectURL(blob);
+      const enlace = document.createElement("a");
+      enlace.href = url;
+      enlace.download = "asignaciones_sgpa.xlsx";
+      document.body.appendChild(enlace);
+      enlace.click();
+      document.body.removeChild(enlace);
+      window.URL.revokeObjectURL(url);
+
+      setMensajeExito("El archivo Excel se descargó correctamente.");
+    } catch (solicitudError) {
+      setError(
+        solicitudError.response?.data?.mensaje ||
+          "No fue posible exportar las asignaciones.",
+      );
+    } finally {
+      setExportando(false);
+    }
+  };
 
   const abrirFormularioNuevo = () => {
     setAsignacionSeleccionada(null);
@@ -346,14 +376,26 @@ function Asignaciones() {
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          color="success"
-          startIcon={<AddIcon />}
-          onClick={abrirFormularioNuevo}
-        >
-          Nueva asignación
-        </Button>
+        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+          <Button
+            variant="contained"
+            color="success"
+            startIcon={<AddIcon />}
+            onClick={abrirFormularioNuevo}
+          >
+            Nueva asignación
+          </Button>
+
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={<FileDownloadOutlinedIcon />}
+            onClick={descargarExcel}
+            disabled={exportando}
+          >
+            {exportando ? "Exportando..." : "Exportar a Excel"}
+          </Button>
+        </Box>
       </Box>
 
       {mensajeExito && (

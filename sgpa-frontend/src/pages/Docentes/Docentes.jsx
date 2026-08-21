@@ -3,6 +3,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutlined";
+import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 
 import {
   Alert,
@@ -34,6 +35,7 @@ import {
   actualizarDocente,
   crearDocente,
   eliminarDocente,
+  exportarDocentes,
   obtenerDocentes,
 } from "../../services/docenteService";
 
@@ -46,6 +48,7 @@ function Docentes() {
   const [confirmacionEliminarAbierta, setConfirmacionEliminarAbierta] =
     useState(false);
   const [eliminando, setEliminando] = useState(false);
+  const [exportando, setExportando] = useState(false);
   const [pagina, setPagina] = useState(0);
   const [filasPorPagina, setFilasPorPagina] = useState(10);
   const [cargando, setCargando] = useState(true);
@@ -100,6 +103,33 @@ function Docentes() {
   const cambiarBusqueda = (event) => {
     setBusqueda(event.target.value);
     setPagina(0);
+  };
+
+  const descargarExcel = async () => {
+    try {
+      setExportando(true);
+      setError("");
+
+      const blob = await exportarDocentes();
+
+      const url = window.URL.createObjectURL(blob);
+      const enlace = document.createElement("a");
+      enlace.href = url;
+      enlace.download = "docentes_sgpa.xlsx";
+      document.body.appendChild(enlace);
+      enlace.click();
+      document.body.removeChild(enlace);
+      window.URL.revokeObjectURL(url);
+
+      setMensajeExito("El archivo Excel se descargó correctamente.");
+    } catch (solicitudError) {
+      setError(
+        solicitudError.response?.data?.mensaje ||
+          "No fue posible exportar los docentes.",
+      );
+    } finally {
+      setExportando(false);
+    }
   };
 
   const abrirFormularioCreacion = () => {
@@ -276,13 +306,25 @@ function Docentes() {
           </Typography>
         </Box>
 
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={abrirFormularioCreacion}
-        >
-          Nuevo docente
-        </Button>
+        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={abrirFormularioCreacion}
+          >
+            Nuevo docente
+          </Button>
+
+          <Button
+            variant="outlined"
+            color="primary"
+            startIcon={<FileDownloadOutlinedIcon />}
+            onClick={descargarExcel}
+            disabled={exportando}
+          >
+            {exportando ? "Exportando..." : "Exportar a Excel"}
+          </Button>
+        </Box>
       </Box>
 
       <Card
