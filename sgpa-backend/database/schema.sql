@@ -117,6 +117,29 @@ CREATE TABLE IF NOT EXISTS usuario (
   COLLATE=utf8mb4_general_ci;
 
 -- =========================================================
+-- Tabla: recuperacion_clave
+-- =========================================================
+
+CREATE TABLE IF NOT EXISTS recuperacion_clave (
+    id INT NOT NULL AUTO_INCREMENT,
+    id_usuario INT NOT NULL,
+    token VARCHAR(64) NOT NULL,
+    expira_en DATETIME NOT NULL,
+    usado TINYINT(1) NOT NULL DEFAULT 0,
+    creado_en TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (id),
+    UNIQUE KEY uq_recuperacion_token (token),
+
+    CONSTRAINT fk_recuperacion_usuario
+        FOREIGN KEY (id_usuario)
+        REFERENCES usuario (id_usuario)
+        ON DELETE CASCADE
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COLLATE=utf8mb4_general_ci;
+
+-- =========================================================
 -- Tabla: grupo
 -- =========================================================
 

@@ -418,7 +418,7 @@ Antes de ejecutar una migración:
 4. Ejecutar la migración una sola vez.
 5. Verificar la estructura resultante.
 
-> En una instalación nueva se ejecuta `database/schema.sql`; no se debe ejecutar después la migración `001_autenticacion_usuarios.sql`, porque el esquema completo ya contiene esos campos. La migración `002_recuperacion_clave.sql` sí debe ejecutarse en toda instalación, incluidas las nuevas, porque el esquema aún no incorpora la tabla de recuperación de contraseña.
+> En una instalación nueva se ejecuta `database/schema.sql`, que ya incluye la tabla `recuperacion_clave`. No se debe ejecutar después la migración `001_autenticacion_usuarios.sql`, porque el esquema completo ya contiene esos campos. La migración `002_recuperacion_clave.sql` solo es necesaria en bases creadas con versiones anteriores del esquema, que todavía no tengan esa tabla.
 
 ## Scripts auxiliares
 
