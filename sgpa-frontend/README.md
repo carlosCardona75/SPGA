@@ -2,7 +2,7 @@
 
 Interfaz web del Sistema de Gestión de Programación Académica (SGPA), desarrollada como proyecto de práctica profesional para el programa de Fisioterapia de la Fundación Universitaria del Área Andina.
 
-El frontend consume la API del backend y permite administrar docentes, materias, grupos, aulas, períodos académicos, asignaciones y horarios, con autenticación JWT, control de acceso por roles y exportación de horarios a Excel.
+El frontend consume la API del backend y permite administrar docentes, materias, grupos, aulas, períodos académicos, asignaciones y horarios, con autenticación JWT, control de acceso por roles, recuperación de contraseña y exportación de información académica a Excel.
 
 ## Funcionalidades principales
 
@@ -16,10 +16,12 @@ El frontend consume la API del backend y permite administrar docentes, materias,
 - CRUD completo de períodos académicos.
 - Gestión de asignaciones de docentes a grupos y períodos.
 - Programación, consulta y filtros de horarios.
-- Exportación de horarios a Excel desde la interfaz.
-- Vista de reportes estadísticos.
+- Exportación de horarios a Excel desde la interfaz (el administrador exporta todos los horarios y el docente su propio horario).
+- Exportación de docentes, asignaciones y reportes a Excel (solo ADMIN).
+- Vista de reportes estadísticos con exportación a Excel.
 - Perfil del usuario autenticado y cambio de contraseña.
-- Administración de usuarios: creación de cuentas DOCENTE/ADMIN y restablecimiento de contraseña temporal (solo ADMIN).
+- Recuperación de contraseña sin correo electrónico (validación de correo institucional y cédula).
+- Administración de usuarios: creación de cuentas DOCENTE/ADMIN y asignación de claves temporales (solo ADMIN).
 - Diseño adaptable con Material UI.
 - Menú y navegación según el rol del usuario.
 
@@ -28,7 +30,9 @@ El frontend consume la API del backend y permite administrar docentes, materias,
 - React 19
 - Vite 8
 - React Router DOM
-- Material UI (MUI)
+- Material UI (MUI) y Material Icons
+- Recharts
+- React Hook Form con Yup
 - Axios
 - JavaScript
 
@@ -37,7 +41,7 @@ El frontend consume la API del backend y permite administrar docentes, materias,
 - Node.js 18 o superior.
 - npm.
 - El backend SGPA ejecutándose (ver `sgpa-backend/README.md`).
-- Una variable de entorno `VITE_API_URL` con la dirección de la API (por defecto `http://localhost:3000/api`).
+- Opcional: una variable de entorno `VITE_API_URL` con la dirección de la API. Si no se define, se utiliza `http://localhost:3000/api` por defecto.
 
 ## Instalación
 
@@ -59,9 +63,9 @@ cd SPGA/sgpa-frontend
 npm install
 ```
 
-### 4. Configurar la URL de la API
+### 4. Configurar la URL de la API (opcional)
 
-Crear el archivo `.env.local` en la raíz del frontend:
+Solo es necesario si la API no está en `http://localhost:3000/api`. Crear el archivo `.env.local` en la raíz del frontend:
 
 ```env
 VITE_API_URL=http://localhost:3000/api
@@ -99,14 +103,15 @@ npm run lint
 
 ### Rol ADMIN
 
-- Dashboard, Docentes, Materias, Grupos, Aulas, Períodos académicos, Asignaciones, Horarios y Reportes.
+- Dashboard, Docentes, Materias, Grupos, Aulas, Períodos académicos, Asignaciones, Horarios, Reportes y Usuarios.
 - Puede crear, editar y eliminar información administrativa.
-- Puede exportar horarios a Excel.
+- Puede exportar a Excel: horarios, docentes, asignaciones y reportes.
 
 ### Rol DOCENTE
 
 - Dashboard, Mi horario, Aulas y Períodos académicos (solo lectura).
 - Consulta el perfil propio y puede cambiar su contraseña.
+- Puede descargar su propio horario en Excel desde Mi horario.
 
 El menú se construye según el rol del usuario autenticado. Las rutas administrativas también están protegidas en el enrutador, de modo que un DOCENTE no puede navegar a un módulo que no le corresponde.
 
@@ -117,7 +122,14 @@ sgpa-frontend/
 ├── public/
 ├── src/
 │   ├── components/
-│   │   └── layout/
+│   │   ├── charts/
+│   │   ├── common/
+│   │   ├── dialogs/
+│   │   ├── forms/
+│   │   ├── layout/
+│   │   ├── navigation/
+│   │   ├── tables/
+│   │   └── ui/
 │   ├── layouts/
 │   │   └── MainLayout.jsx
 │   ├── pages/
@@ -128,6 +140,8 @@ sgpa-frontend/
 │   │   ├── Grupos/
 │   │   ├── Horarios/
 │   │   ├── Login/
+│   │   │   ├── Login.jsx
+│   │   │   └── RecuperarClave.jsx
 │   │   ├── Materias/
 │   │   ├── Perfil/
 │   │   ├── Periodos/
@@ -148,6 +162,7 @@ sgpa-frontend/
 │   │   ├── materiaService.js
 │   │   ├── perfilService.js
 │   │   ├── periodoService.js
+│   │   ├── reporteService.js
 │   │   └── usuarioService.js
 │   ├── theme/
 │   ├── utils/
@@ -200,7 +215,7 @@ El módulo **Usuarios** permite al administrador:
 
 - Listar las cuentas de acceso (nombre, correo, rol, estado y si la contraseña temporal está pendiente de cambio).
 - Crear una cuenta nueva para un docente sin cuenta: se selecciona el docente y el rol (DOCENTE o ADMIN). El nombre y el correo se toman automáticamente del docente, y el sistema genera una contraseña temporal con el formato `Sgpa7-XXXXXXXX` que se muestra una sola vez.
-- Restablecer la contraseña de un usuario existente: se genera una nueva contraseña temporal y el usuario deberá cambiarla al ingresar.
+- Asignar una clave temporal a un usuario existente mediante el botón **"Asignar clave temporal"**: se genera una nueva contraseña temporal y el usuario deberá cambiarla al ingresar. Este botón también debe utilizarse cuando se reactiva una cuenta que estaba inactiva, porque la reactivación no muestra ninguna clave.
 
 ### Restricciones al crear cuentas
 
@@ -210,6 +225,16 @@ El módulo **Usuarios** permite al administrador:
 - Un docente inactivo no puede iniciar sesión, aunque tenga cuenta.
 
 La interfaz muestra avisos cuando el docente seleccionado no cumple alguna de estas condiciones.
+
+## Recuperación de contraseña
+
+La pantalla de inicio de sesión incluye el enlace **"¿Olvidaste tu contraseña?"**, que lleva a la página pública `/recuperar`. El flujo funciona completamente dentro del sistema, sin envío de correos electrónicos:
+
+1. **Verificar identidad:** el usuario ingresa su correo institucional y su número de cédula. Ambos datos deben coincidir con la cuenta y con el docente asociado.
+2. **Definir la nueva contraseña:** si los datos son correctos, el sistema genera un token interno válido por 30 minutos y habilita el segundo paso, donde se define una nueva contraseña con las mismas reglas de complejidad del sistema (mínimo 8 caracteres, mayúscula, minúscula y número).
+3. **Iniciar sesión:** la contraseña queda actualizada y se puede ingresar de inmediato.
+
+Por seguridad, los intentos de recuperación están limitados a 5 solicitudes cada 15 minutos. Si la cuenta está inactiva o la cédula no corresponde al correo indicado, no se revela esta información al usuario.
 
 ## Seguridad
 

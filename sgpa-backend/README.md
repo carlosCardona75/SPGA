@@ -18,11 +18,12 @@ El sistema permite administrar docentes, materias, grupos, aulas, períodos acad
 - Validación de disponibilidad de aulas.
 - Control del máximo de horas permitido por docente.
 - Consulta del perfil, asignaciones y horario del docente autenticado.
-- Exportación de horarios a archivos Excel.
+- Exportación de horarios, docentes, asignaciones y reportes estadísticos a archivos Excel.
 - Autenticación mediante JSON Web Token (JWT).
 - Autorización mediante roles ADMIN y DOCENTE.
 - Contraseñas protegidas mediante hash.
 - Contraseñas temporales con cambio obligatorio.
+- Recuperación de contraseña dentro del sistema, validando el correo institucional y la cédula del docente.
 - Límite de intentos fallidos de inicio de sesión.
 - Encabezados HTTP de seguridad mediante Helmet.
 - Restricción de acceso mediante CORS.
@@ -181,6 +182,7 @@ sgpa-backend/
 │   │   ├── horarioController.js
 │   │   ├── materiaController.js
 │   │   ├── periodoController.js
+│   │   ├── reporteController.js
 │   │   └── usuarioController.js
 │   ├── middlewares/
 │   │   └── authMiddleware.js
@@ -193,6 +195,7 @@ sgpa-backend/
 │   │   ├── horarioRoutes.js
 │   │   ├── materiaRoutes.js
 │   │   ├── periodoRoutes.js
+│   │   ├── reporteRoutes.js
 │   │   └── usuarioRoutes.js
 │   └── app.js
 ├── .env.example
@@ -223,8 +226,8 @@ Puede:
 - Crear y modificar asignaciones.
 - Crear, modificar y eliminar horarios.
 - Consultar todos los registros.
-- Exportar horarios a Excel.
-- Restablecer contraseñas de usuarios.
+- Exportar a Excel: horarios, docentes, asignaciones y reportes estadísticos.
+- Restablecer contraseñas de usuarios mediante claves temporales.
 
 ### Rol DOCENTE
 
@@ -233,6 +236,8 @@ Puede:
 - Consultar su perfil.
 - Consultar sus asignaciones.
 - Consultar su horario.
+- Descargar su propio horario en Excel.
+- Recuperar su contraseña validando su correo institucional y su cédula.
 - Consultar materias, grupos, aulas y períodos autorizados.
 - Cambiar su propia contraseña.
 
@@ -250,10 +255,14 @@ Encabezado requerido: Authorization: Bearer TOKEN_JWT
 |---|---|---|---|
 | POST | `/api/auth/registro-inicial` | Público condicionado | Crea exclusivamente el primer administrador |
 | POST | `/api/auth/login` | Público | Inicia sesión y genera un token |
+| POST | `/api/auth/recuperar-clave` | Público | Valida correo y cédula y genera un token de recuperación válido por 30 minutos |
+| POST | `/api/auth/restablecer-clave` | Público | Define una nueva contraseña mediante el token de recuperación |
 | GET | `/api/auth/perfil` | Autenticado | Consulta el usuario autenticado |
 | PATCH | `/api/auth/cambiar-password` | Autenticado | Cambia la contraseña propia |
 
-El inicio de sesión permite cinco intentos fallidos por dirección IP dentro de un período de 15 minutos. El sexto intento devuelve `429 Too Many Requests`.
+El inicio de sesión permite cinco intentos fallidos por dirección IP dentro de un período de 15 minutos. El sexto intento devuelve `429 Too Many Requests`. La recuperación de contraseña aplica la misma política: cinco solicitudes cada 15 minutos por dirección IP.
+
+La recuperación de contraseña funciona sin envío de correos electrónicos: `recuperar-clave` comprueba que el correo pertenezca a una cuenta activa y que la cédula corresponda al docente asociado; si ambos datos coinciden, se genera un token interno de 30 minutos con el que `restablecer-clave` define la nueva contraseña. El servicio no revela si la cuenta o la cédula existen cuando los datos no coinciden.
 
 ### Usuarios
 
@@ -269,6 +278,7 @@ El inicio de sesión permite cinco intentos fallidos por dirección IP dentro de
 |---|---|---|---|
 | GET | `/api/docentes` | ADMIN | Lista los docentes |
 | GET | `/api/docentes/mi-perfil` | DOCENTE | Consulta el perfil docente propio |
+| GET | `/api/docentes/exportar` | ADMIN | Exporta los docentes a Excel |
 | GET | `/api/docentes/:id` | ADMIN | Consulta un docente por ID |
 | POST | `/api/docentes` | ADMIN | Crea un docente |
 | PUT | `/api/docentes/:id` | ADMIN | Actualiza un docente |
@@ -297,6 +307,7 @@ En `{modulo}` se utiliza `materias`, `grupos`, `aulas` o `periodos`.
 |---|---|---|---|
 | GET | `/api/asignaciones` | ADMIN | Lista todas las asignaciones |
 | GET | `/api/asignaciones/mis-asignaciones` | DOCENTE | Lista las asignaciones propias |
+| GET | `/api/asignaciones/exportar` | ADMIN | Exporta las asignaciones a Excel (admite filtros `id_docente`, `id_grupo` e `id_periodo`) |
 | GET | `/api/asignaciones/:id` | ADMIN | Consulta una asignación |
 | POST | `/api/asignaciones` | ADMIN | Crea una asignación |
 | PUT | `/api/asignaciones/:id` | ADMIN | Actualiza una asignación |
@@ -309,10 +320,17 @@ En `{modulo}` se utiliza `materias`, `grupos`, `aulas` o `periodos`.
 | GET | `/api/horarios` | ADMIN | Lista y filtra todos los horarios |
 | GET | `/api/horarios/mi-horario` | DOCENTE | Consulta el horario propio |
 | GET | `/api/horarios/exportar` | ADMIN | Exporta horarios a Excel |
+| GET | `/api/horarios/exportar-mi-horario` | DOCENTE | Exporta el horario propio a Excel |
 | GET | `/api/horarios/:id` | ADMIN | Consulta un horario |
 | POST | `/api/horarios` | ADMIN | Crea un horario |
 | PUT | `/api/horarios/:id` | ADMIN | Actualiza un horario |
 | DELETE | `/api/horarios/:id` | ADMIN | Elimina un horario |
+
+### Reportes
+
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| GET | `/api/reportes/exportar` | ADMIN | Exporta los reportes estadísticos a Excel en cuatro hojas: horas por docente, horarios por período, horarios por día y uso de aulas |
 
 ## Validaciones de negocio
 
@@ -387,9 +405,10 @@ Para una instalación nueva:
 
 ### Actualización de una base existente
 
-La carpeta `database/migrations` contiene cambios destinados únicamente a instalaciones anteriores. Actualmente incluye:
+La carpeta `database/migrations` contiene cambios destinados a instalaciones anteriores y a complementos del esquema. Actualmente incluye:
 
 - `001_autenticacion_usuarios.sql`: agrega la estructura de autenticación, roles y control de contraseñas a una base existente.
+- `002_recuperacion_clave.sql`: agrega la tabla de tokens para el flujo de recuperación de contraseña sin correo.
 
 Antes de ejecutar una migración:
 
@@ -399,7 +418,7 @@ Antes de ejecutar una migración:
 4. Ejecutar la migración una sola vez.
 5. Verificar la estructura resultante.
 
-> En una instalación nueva se ejecuta `database/schema.sql`; no se debe ejecutar después la migración `001_autenticacion_usuarios.sql`, porque el esquema completo ya contiene esos campos.
+> En una instalación nueva se ejecuta `database/schema.sql`; no se debe ejecutar después la migración `001_autenticacion_usuarios.sql`, porque el esquema completo ya contiene esos campos. La migración `002_recuperacion_clave.sql` sí debe ejecutarse en toda instalación, incluidas las nuevas, porque el esquema aún no incorpora la tabla de recuperación de contraseña.
 
 ## Scripts auxiliares
 
