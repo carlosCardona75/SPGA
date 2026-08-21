@@ -273,32 +273,14 @@ function Reportes() {
 
   return (
     <MainLayout>
-      <Stack
-        spacing={0.5}
-        mb={3.5}
-        direction={{ xs: "column", sm: "row" }}
-        justifyContent="space-between"
-        alignItems={{ xs: "stretch", sm: "center" }}
-      >
-        <Box>
-          <Typography variant="h4" component="h1" fontWeight={700}>
-            Reportes
-          </Typography>
+      <Stack spacing={0.5} mb={3.5}>
+        <Typography variant="h4" component="h1" fontWeight={700}>
+          Reportes
+        </Typography>
 
-          <Typography color="text.secondary">
-            Resumen estadístico de la programación académica.
-          </Typography>
-        </Box>
-
-        <Button
-          variant="outlined"
-          color="primary"
-          startIcon={<FileDownloadOutlinedIcon />}
-          onClick={descargarExcel}
-          disabled={exportando}
-        >
-          {exportando ? "Exportando..." : "Exportar a Excel"}
-        </Button>
+        <Typography color="text.secondary">
+          Resumen estadístico de la programación académica.
+        </Typography>
       </Stack>
 
       {cargando && (
@@ -367,6 +349,19 @@ function Reportes() {
           >
             <Card variant="outlined">
               <Box sx={{ p: 2.5 }}>
+                <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="success"
+                    startIcon={<FileDownloadOutlinedIcon />}
+                    onClick={descargarExcel}
+                    disabled={exportando}
+                  >
+                    {exportando ? "Exportando..." : "Exportar a Excel"}
+                  </Button>
+                </Box>
+
                 <Typography variant="h6" fontWeight={700}>
                   Horas programadas por docente
                 </Typography>
